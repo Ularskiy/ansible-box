@@ -1,0 +1,2 @@
+nginx_hostname: web01.local
+nginx_ssl: true

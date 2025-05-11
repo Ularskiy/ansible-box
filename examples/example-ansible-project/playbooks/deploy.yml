@@ -1,0 +1,5 @@
+- name: Деплой тестового приложения
+  hosts: web
+  become: true
+  roles:
+    - deploy/example_app

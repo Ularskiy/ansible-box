@@ -1,0 +1,7 @@
+- name: Настройка всей инфраструктуры
+  hosts: all
+  become: true
+  roles:
+    - infra/example_role_infra
+    - shared/example_role_shared
+
