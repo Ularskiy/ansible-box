@@ -14,9 +14,19 @@
       - proxmox_node in (nodes_info.json.data | map(attribute='node') | list)
     fail_msg: "Указанный узел {{ proxmox_node }} не найден!"
 
+- name: Удалить ВМ
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state | default('present') == 'absent'
+
 - name: Клонировать ВМ
   uri:
-    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ template_vmid }}/clone"
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.source_vmid | default(template_vmid) }}/clone"
     method: POST
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
@@ -26,6 +36,57 @@
       name: "{{ item.name }}"
       target: "{{ proxmox_node }}"
       full: "1"
-    validate_certs: no 
+    validate_certs: no
   loop: "{{ vm_list }}"
+  when: item.state | default('present') in ['present', 'started']
 
+
+- name: Ждать снятие lock перед Cloud-Init конфигом
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    return_content: yes
+    validate_certs: no
+  register: vm_status
+  until: vm_status.json.data.lock is not defined or vm_status.json.data.lock == ''
+  retries: 20
+  delay: 2
+  loop: "{{ vm_list }}"
+  when: item.state | default('present') in ['present', 'started']
+
+
+- name: Настроить параметры Cloud-Init
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.id }}/config"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      ciuser: ansible
+      ipconfig0: "ip={{ item.ip }}/{{ item.cidr | default(24) }},gw={{ item.gw | default(default_gateway) }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state | default('present') in ['present', 'started']
+
+- name: Запустить ВМ
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.id }}/status/start"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state | default('present') == 'started'
+
+- name: Остановить ВМ
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ item.id }}/status/stop"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state == 'stopped'
