@@ -1,0 +1,9 @@
+proxmox_node: "alm2a-itpsector-pve"
+proxmox_template: "debian-test-clone"
+template_vmid: 110
+
+vm_list:
+  - name: vm01
+    id: 1000
+    ip: 192.168.1.101
+

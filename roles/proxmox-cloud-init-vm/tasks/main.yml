@@ -1,0 +1,31 @@
+- name: Получить список узлов
+  uri:
+    url: "{{ proxmox_api_url }}/nodes"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    return_content: yes
+    validate_certs: no
+  register: nodes_info
+
+- name: Проверить, существует ли указанный узел
+  assert:
+    that:
+      - proxmox_node in (nodes_info.json.data | map(attribute='node') | list)
+    fail_msg: "Указанный узел {{ proxmox_node }} не найден!"
+
+- name: Клонировать ВМ
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ template_vmid }}/clone"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      newid: "{{ item.id }}"
+      name: "{{ item.name }}"
+      target: "{{ proxmox_node }}"
+      full: "1"
+    validate_certs: no 
+  loop: "{{ vm_list }}"
+
