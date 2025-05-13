@@ -1,18 +1,14 @@
-- name: Клонировать ВМ {{ item.name }} на ноде {{ item.target_node | default(proxmox_node) }}
+- name: Клонировать ВМ {{ item.item.name }} на ноде {{ item.item.target_node | default(proxmox_node) }}
   uri:
-    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.source_vmid | default(template_vmid) }}/clone"
+    url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node | default(proxmox_node) }}/qemu/{{ item.item.source_vmid | default(template_vmid) }}/clone"
     method: POST
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     body_format: form-urlencoded
     body:
-      newid: "{{ item.id }}"
-      name: "{{ item.name }}"
-      target: "{{ item.target_node | default(proxmox_node) }}"
-      full: "{{ item.full | default(1) }}"
+      newid: "{{ item.item.id }}"
+      name: "{{ item.item.name }}"
+      target: "{{ item.item.target_node | default(proxmox_node) }}"
+      full: "{{ item.item.full | default(1) }}"
     validate_certs: no
-  loop: "{{ vm_list }}"
-  when:
-    - item.state in ['present', 'started']
-    - check_vm_result.results is defined
-    - check_vm_result.results[loop.index0].status == 404
+

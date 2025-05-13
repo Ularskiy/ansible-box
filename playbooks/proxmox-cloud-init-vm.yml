@@ -4,7 +4,8 @@
   connection: local
   vars_files:
     - ../inventory/testing/vault_proxmox-cloud-init-vm
+    - ../inventory/testing/vault_ssh-pub-vm
     - ../inventory/testing/vm_list.yml
   roles:
-    - role: proxmox-cloud-init-vm
+    - role: infra/proxmox-cloud-init-vm
 

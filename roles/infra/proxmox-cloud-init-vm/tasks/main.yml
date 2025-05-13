@@ -14,14 +14,19 @@
   import_tasks: check_vm_exists.yml
   tags: [check, clone, delete]
 
-- name: Debug — вывод статуса существования ВМ
+# 👇 ВРЕМЕННО 
+- name: Debug — вывод полной структуры check_vm_result
   debug:
-    msg: >
-      ВМ {{ item.name }} (ID {{ item.id }}): {{
-        'существует' if check_vm_result.results[loop.index0].status == 200 else 'не существует'
-      }}
-  loop: "{{ vm_list }}"
-  tags: [check, clone, delete]
+    var: check_vm_result
+  tags: [debug]
+
+- name: Debug — статус существования ВМ из check_vm_result
+  debug:
+    msg: "ВМ {{ item.item.name }} → status: {{ item.status }}"
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  tags: [debug]
 
 - name: Удалить ВМ
   import_tasks: delete.yml
@@ -32,30 +37,41 @@
   tags: [delete]
 
 - name: Клонировать ВМ
-  import_tasks: clone.yml
+  include_tasks: clone.yml
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   when:
-    - item.state in ['present', 'started']
-    - check_vm_result.results is defined
-    - check_vm_result.results[loop.index0].status == 404
+    - item.item.state in ['present', 'started']
+    - item.status == 404
   tags: [clone]
 
 - name: Debug — ВМ уже существует, пропускаем клонирование
   debug:
-    msg: "Пропущено: ВМ {{ item.name }} уже существует (ID {{ item.id }})"
-  loop: "{{ vm_list }}"
+    msg: "Пропущено: ВМ {{ item.item.name }} уже существует (ID {{ item.item.id }})"
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   when:
-    - item.state in ['present', 'started']
-    - check_vm_result.results is defined
-    - check_vm_result.results[loop.index0].status == 200
+    - item.item.state in ['present', 'started']
+    - item.status == 200
   tags: [clone]
 
 - name: Подождать снятие lock
-  import_tasks: wait_unlock.yml
-  when: item.state in ['present', 'started']
+  include_tasks: wait_unlock.yml
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.item.state in ['present', 'started']
+    - item.status == 404  # только если ВМ действительно была клонирована
   tags: [wait, clone]
 
 - name: Настроить параметры Cloud-Init
-  import_tasks: cloud_init.yml
+  include_tasks: cloud_init.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.state in ['present', 'started']
   tags: [cloud_init]
 

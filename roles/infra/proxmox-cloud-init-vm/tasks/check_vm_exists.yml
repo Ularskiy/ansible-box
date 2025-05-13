@@ -5,8 +5,7 @@
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     validate_certs: no
-    status_code: [200, 404]
-    failed_when: false
+    status_code: [200, 404, 500]
   register: check_vm_result
   loop: "{{ vm_list }}"
   loop_control:
