@@ -1,0 +1,11 @@
+- name: Откатить ВМ {{ item.name }} к снапшоту {{ item.snapshot_name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}/snapshot/{{ item.snapshot_name }}/rollback"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when:
+    - item.state == 'rollback'
+    - item.snapshot_name is defined

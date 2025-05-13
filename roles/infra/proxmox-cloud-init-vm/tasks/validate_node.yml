@@ -1,0 +1,16 @@
+- name: Получить список всех узлов Proxmox
+  uri:
+    url: "{{ proxmox_api_url }}/nodes"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    return_content: yes
+    validate_certs: no
+  register: nodes_info
+
+- name: Проверить, что целевая нода существует
+  assert:
+    that:
+      - item.target_node | default(proxmox_node) in (nodes_info.json.data | map(attribute='node') | list)
+    fail_msg: "Нода {{ item.target_node | default(proxmox_node) }} не найдена в кластере Proxmox!"
+  loop: "{{ vm_list }}"

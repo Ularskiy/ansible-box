@@ -1,7 +1,10 @@
 - name: Клонирование ВМ через Proxmox API Token
-  hosts: pve_test
+  hosts: testing_cluster
   gather_facts: no
+  connection: local
   vars_files:
-    - /home/ularskiy/ansible-box/inventory/test/vault.yml
+    - ../inventory/testing/vault_proxmox-cloud-init-vm
+    - ../inventory/testing/vm_list.yml
   roles:
-    - proxmox-cloud-init-vm
+    - role: proxmox-cloud-init-vm
+

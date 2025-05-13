@@ -1,0 +1,16 @@
+- name: Мигрировать ВМ {{ item.name }} с {{ item.source_node }} на {{ item.target_node }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.source_node }}/qemu/{{ item.id }}/migrate"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      target: "{{ item.target_node }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when:
+    - item.state == 'migrate'
+    - item.source_node is defined
+    - item.target_node is defined
+    - item.source_node != item.target_node

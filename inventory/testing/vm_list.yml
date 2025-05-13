@@ -1,0 +1,10 @@
+vm_list:
+  - name: test01
+    id: 1101
+    source_vmid: 106
+    target_node: alm2a-itpsector-pve
+    ip: 192.168.10.101
+    cidr: 24
+    gw: 192.168.10.1
+    state: started
+

@@ -1,0 +1,13 @@
+- name: Проверка, существует ли ВМ {{ item.id }} на ноде {{ item.target_node | default(proxmox_node) }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+    status_code: [200, 404]
+    failed_when: false
+  register: check_vm_result
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"

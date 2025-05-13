@@ -1,0 +1,9 @@
+- name: Остановить ВМ {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}/status/stop"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state == 'stopped'

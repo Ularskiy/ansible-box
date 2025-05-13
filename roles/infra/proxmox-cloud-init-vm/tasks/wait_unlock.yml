@@ -1,0 +1,14 @@
+- name: Ждать снятие lock перед Cloud-Init конфигом для {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    return_content: yes
+    validate_certs: no
+  register: vm_status
+  until: vm_status.json.data.lock is not defined or vm_status.json.data.lock == ''
+  retries: 20
+  delay: 2
+  loop: "{{ vm_list }}"
+  when: item.state in ['present', 'started']

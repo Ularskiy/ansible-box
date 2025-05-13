@@ -1,0 +1,12 @@
+- name: Удалить ВМ {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when:
+    - item.state == 'absent'
+    - check_vm_result.results is defined
+    - check_vm_result.results[loop.index0].status == 200

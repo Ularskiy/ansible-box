@@ -1,0 +1,15 @@
+- name: Настроить параметры Cloud-Init для {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/qemu/{{ item.id }}/config"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      ciuser: "{{ item.ci_user | default(default_ci_user) }}"
+      cipassword: "{{ item.ci_pass | default(default_ci_pass) }}"
+      ipconfig0: "ip={{ item.ip }}/{{ item.cidr | default(24) }},gw={{ item.gw | default(default_gateway) }}"
+      sshkeys: "{{ item.ssh_key | default('') }}"
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state in ['present', 'started']

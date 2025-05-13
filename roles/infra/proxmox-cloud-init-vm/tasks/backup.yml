@@ -1,0 +1,24 @@
+- name: Проверить наличие backup_storage, если требуется бэкап
+  assert:
+    that:
+      - item.backup_storage is defined
+    fail_msg: "Для ВМ {{ item.name }} не задан backup_storage"
+  loop: "{{ vm_list }}"
+  when: item.state == 'backup'
+
+- name: Создать резервную копию ВМ {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node | default(proxmox_node) }}/vzdump"
+    method: POST
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      vmid: "{{ item.id }}"
+      storage: "{{ item.backup_storage }}"
+      mode: snapshot
+      compress: zstd
+    validate_certs: no
+  loop: "{{ vm_list }}"
+  when: item.state == 'backup'
+
