@@ -29,11 +29,13 @@
   tags: [debug]
 
 - name: Удалить ВМ
-  import_tasks: delete.yml
+  include_tasks: delete.yml
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   when:
-    - item.state == 'absent'
-    - check_vm_result.results is defined
-    - check_vm_result.results[loop.index0].status == 200
+    - item.item.state == 'absent'
+    - item.status in [200, 500]
   tags: [delete]
 
 - name: Клонировать ВМ
@@ -43,18 +45,7 @@
     label: "{{ item.item.name }}"
   when:
     - item.item.state in ['present', 'started']
-    - item.status == 404
-  tags: [clone]
-
-- name: Debug — ВМ уже существует, пропускаем клонирование
-  debug:
-    msg: "Пропущено: ВМ {{ item.item.name }} уже существует (ID {{ item.item.id }})"
-  loop: "{{ check_vm_result.results }}"
-  loop_control:
-    label: "{{ item.item.name }}"
-  when:
-    - item.item.state in ['present', 'started']
-    - item.status == 200
+    - item.status in [404, 500]  
   tags: [clone]
 
 - name: Подождать снятие lock
@@ -64,8 +55,9 @@
     label: "{{ item.item.name }}"
   when:
     - item.item.state in ['present', 'started']
-    - item.status == 404  # только если ВМ действительно была клонирована
+    - item.status in [404, 500] 
   tags: [wait, clone]
+
 
 - name: Настроить параметры Cloud-Init
   include_tasks: cloud_init.yml
