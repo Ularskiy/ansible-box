@@ -5,7 +5,9 @@
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     validate_certs: no
-  when: item.status == 200 
+  when:
+    - item.status == 200
+    - item.json.data.status == 'running' 
 
 - name: Удалить ВМ {{ item.item.name }}
   uri:
@@ -14,4 +16,5 @@
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     validate_certs: no
-
+  when: item.status in [200, 500] 
+  failed_when: false              

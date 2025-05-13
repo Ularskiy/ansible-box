@@ -1,7 +1,7 @@
 vm_list:
   - name: test01
     id: 1101
-    state: started
+    state: absent
     ci_user: ansible
     ip: 192.168.10.101
     cidr: 24
