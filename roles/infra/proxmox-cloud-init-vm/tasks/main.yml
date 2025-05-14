@@ -82,8 +82,8 @@
     - item.status in [404, 500]
   tags: [net0]
 
-- name: Настроить параметры Cloud-Init
-  include_tasks: cloud_init.yml
+- name: Настроить Cloud-Init через qm set
+  include_tasks: cloud_init_qm_set.yml
   loop: "{{ vm_list }}"
   loop_control:
     label: "{{ item.name }}"
