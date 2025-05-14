@@ -1,0 +1,13 @@
+- name: Ждать, пока ВМ {{ item.item.name }} выключится перед удалением
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node }}/qemu/{{ item.item.id }}/status/current"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    return_content: yes
+    validate_certs: no
+  register: vm_shutdown_status
+  until: vm_shutdown_status.json.data.status == "stopped"
+  retries: 15
+  delay: 2
+  failed_when: false

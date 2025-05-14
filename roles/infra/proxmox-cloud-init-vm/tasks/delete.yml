@@ -1,20 +1,8 @@
-- name: Остановить ВМ {{ item.item.name }} перед удалением
-  uri:
-    url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node | default(proxmox_node) }}/qemu/{{ item.item.id }}/status/stop"
-    method: POST
-    headers:
-      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
-    validate_certs: no
-  when:
-    - item.status == 200
-    - item.json.data.status == 'running' 
-
 - name: Удалить ВМ {{ item.item.name }}
   uri:
-    url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node | default(proxmox_node) }}/qemu/{{ item.item.id }}"
+    url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node }}/qemu/{{ item.item.id }}"
     method: DELETE
     headers:
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     validate_certs: no
-  when: item.status in [200, 500] 
-  failed_when: false              
+  failed_when: false

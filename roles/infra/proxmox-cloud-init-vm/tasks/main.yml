@@ -14,12 +14,6 @@
   import_tasks: check_vm_exists.yml
   tags: [check, clone, delete]
 
-# 👇 ВРЕМЕННО 
-- name: Debug — вывод полной структуры check_vm_result
-  debug:
-    var: check_vm_result
-  tags: [debug]
-
 - name: Debug — статус существования ВМ из check_vm_result
   debug:
     msg: "ВМ {{ item.item.name }} → status: {{ item.status }}"
@@ -28,14 +22,34 @@
     label: "{{ item.item.name }}"
   tags: [debug]
 
-- name: Удалить ВМ
-  include_tasks: delete.yml
+- name: Остановить ВМ перед удалением
+  include_tasks: stop.yml
   loop: "{{ check_vm_result.results }}"
   loop_control:
     label: "{{ item.item.name }}"
   when:
     - item.item.state == 'absent'
+    - item.status == 200
+  tags: [delete]
+
+- name: Ждать выключения ВМ перед удалением
+  include_tasks: wait_shutdown.yml
+  when:
+    - item.item.state == 'absent'
+    - item.status == 200
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  tags: [delete]
+
+- name: Удалить ВМ
+  include_tasks: delete.yml
+  when:
+    - item.item.state == 'absent'
     - item.status in [200, 500]
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
   tags: [delete]
 
 - name: Клонировать ВМ
@@ -68,22 +82,33 @@
   tags: [cloud_init]
 
 - name: Запустить ВМ
-  import_tasks: start.yml
+  include_tasks: start.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.state == 'started'
   tags: [start]
 
 - name: Остановить ВМ
-  import_tasks: stop.yml
+  include_tasks: stop.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.state == 'stopped'
   tags: [stop]
 
 - name: Сделать снапшот
-  import_tasks: snapshot.yml
+  include_tasks: snapshot.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.state == 'snapshot'
   tags: [snapshot]
 
 - name: Сделать бэкап
-  import_tasks: backup.yml
+  include_tasks: backup.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: item.state == 'backup'
   tags: [backup]
-
