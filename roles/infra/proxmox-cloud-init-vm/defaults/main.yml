@@ -1,14 +1,14 @@
 proxmox_api_url: ""
 proxmox_user: ""
 proxmox_token: ""
-proxmox_node: "alm2a-itpsector-pve"
-proxmox_template: "debian-test-clone"
-template_vmid: 110
+proxmox_node: ""
+proxmox_template: ""
+template_vmid: #id_number_template_vm
 
 vm_list:
-  - name: vm01
-    id: 1001
-    ip: 192.168.1.101
-    cidr: 24
-    gw: 192.168.1.1
-    state: present
+  - name: #hostname_vm
+    id: #new_id_vm
+    ip: #ip_address_vm
+    cidr: #mask
+    gw: #gateway_address_vm
+    state: #started stopped absent

@@ -72,6 +72,15 @@
     - item.status in [404, 500] 
   tags: [wait, clone]
 
+- name: Установить net0 интерфейс (bridge) после клонирования
+  include_tasks: net_config.yml
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.item.state in ['present', 'started']
+    - item.status in [404, 500]
+  tags: [net0]
 
 - name: Настроить параметры Cloud-Init
   include_tasks: cloud_init.yml

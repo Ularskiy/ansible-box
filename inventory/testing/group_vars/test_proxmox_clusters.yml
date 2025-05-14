@@ -1,9 +1,0 @@
-proxmox_nodes:
-  - name: alm1a-itpsector-pve
-    ip: 10.96.34.132
-    role: standby
-
-  - name: alm2a-itpsector-pve
-    ip: 10.96.34.134
-    role: main
-
