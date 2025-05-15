@@ -1,4 +1,4 @@
-- name: Установить net0 (bridge) для {{ item.item.name }}
+- name: Установить net0 (bridge) и сетевую модель для {{ item.item.name }}
   uri:
     url: "{{ proxmox_api_url }}/nodes/{{ item.item.target_node | default(proxmox_node) }}/qemu/{{ item.item.id }}/config"
     method: POST
@@ -6,6 +6,6 @@
       Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
     body_format: form-urlencoded
     body:
-      net0: "virtio,bridge={{ item.item.bridge | default('br-vlan2875') }}"
+      net0: "{{ item.item.nic_model | default('virtio') }},bridge={{ item.item.bridge | default('br-vlan2875') }}"
     validate_certs: no
   tags: [net0]

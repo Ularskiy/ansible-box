@@ -1,0 +1,50 @@
+- name: Получить конфигурацию ВМ {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node }}/qemu/{{ item.id }}/config"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  register: vm_config_response
+  when: item.disk_add is defined
+
+- name: Установить префикс и диапазон портов
+  set_fact:
+    disk_prefix: "{{ item.disk_add.disk_type | default('scsi') }}"
+    all_ports: "{{ range(0, 6) | list }}"   # можешь расширить до 16 при необходимости
+  when: item.disk_add is defined
+
+- name: Найти занятые и свободные порты {{ disk_prefix }}
+  set_fact:
+    used_ports: >-
+      {{
+        vm_config_response.json.data.keys()
+        | select('match', '^' ~ disk_prefix ~ '\\d+$')
+        | map('regex_search', '\\d+')
+        | map('int') | list
+      }}
+    free_ports: "{{ all_ports | difference(used_ports) }}"
+    next_port: "{{ free_ports[0] }}"
+  when: item.disk_add is defined
+
+- name: Добавить диск {{ disk_prefix }}{{ next_port }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node }}/qemu/{{ item.id }}/config"
+    method: PUT
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    body_format: form-urlencoded
+    body:
+      "{{ disk_prefix }}{{ next_port }}": "{{ item.disk_add.storage }}:{{ item.disk_add.size }}"
+    validate_certs: no
+  when:
+    - item.disk_add is defined
+    - free_ports | length > 0
+
+- name: Нет свободных портов {{ disk_prefix }} для ВМ {{ item.name }}
+  debug:
+    msg: "Нет свободных {{ disk_prefix }} портов для добавления диска на ВМ {{ item.name }}"
+  when:
+    - item.disk_add is defined
+    - free_ports | length == 0
+

@@ -72,6 +72,22 @@
     - item.status in [404, 500] 
   tags: [wait, clone]
 
+- name: Добавить дополнительный диск (если задан)
+  include_tasks: add_disk.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.state in ['present', 'started']
+  tags: [disk, add_disk]
+
+- name: Увеличить существующий диск (если задан)
+  include_tasks: resize_disk.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.state in ['present', 'started']
+  tags: [disk, resize_disk]
+
 - name: Установить net0 интерфейс (bridge) после клонирования
   include_tasks: net_config.yml
   loop: "{{ check_vm_result.results }}"

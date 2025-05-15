@@ -4,6 +4,7 @@
     dest: /tmp/cloudinit_key.pub
     mode: '0644'
   delegate_to: "{{ item.target_node }}"
+  become: true
 
 - name: Установить cloud-init параметры через qm set
   shell: |
@@ -12,11 +13,16 @@
       --sshkey /tmp/cloudinit_key.pub \
       --ipconfig0 ip={{ item.ip }}/{{ item.cidr | default(24) }},gw={{ item.gw | default('192.168.100.1') }} \
       --nameserver {{ item.nameserver | default('8.8.8.8') }} \
-      --searchdomain {{ item.searchdomain | default('local') }}
+      --searchdomain {{ item.searchdomain | default('local') }} \
+      --memory {{ item.memory | default(1024) }} \
+      --cores {{ item.cores | default(1) }} \
+      --onboot {{ item.onboot | default(1) }}
   delegate_to: "{{ item.target_node }}"
+  become: true
 
 - name: Удалить временный SSH ключ
   file:
     path: /tmp/cloudinit_key.pub
     state: absent
   delegate_to: "{{ item.target_node }}"
+  become: true

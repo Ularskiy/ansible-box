@@ -1,0 +1,49 @@
+- name: Получить конфигурацию ВМ {{ item.name }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node }}/qemu/{{ item.id }}/config"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  register: vm_config_response
+  when: item.disk_resize is defined
+
+- name: Извлечь строку диска и имя стораджа
+  set_fact:
+    disk_name: "{{ item.disk_name | default('scsi0') }}"
+    disk_config: "{{ vm_config_response.json.data[disk_name] }}"
+    disk_storage: "{{ disk_config.split(':')[0] }}"
+  when: item.disk_resize is defined
+
+- name: Получить информацию о сторадже {{ disk_storage }}
+  uri:
+    url: "{{ proxmox_api_url }}/nodes/{{ item.target_node }}/storage/{{ disk_storage }}/status"
+    method: GET
+    headers:
+      Authorization: "PVEAPIToken={{ proxmox_user }}={{ proxmox_token }}"
+    validate_certs: no
+  register: storage_status
+  when: item.disk_resize is defined
+
+- name: Проверить, достаточно ли места для увеличения диска
+  set_fact:
+    disk_resize_bytes: "{{ item.disk_resize | int * 1024 * 1024 * 1024 }}"
+    has_enough_space: "{{ storage_status.json.data.available > disk_resize_bytes }}"
+  when: item.disk_resize is defined
+
+- name: Увеличить диск {{ disk_name }} на {{ item.disk_resize }}G
+  shell: >
+    qm resize {{ item.id }} {{ disk_name }} +{{ item.disk_resize }}G
+  become: true
+  delegate_to: "{{ item.target_node }}"
+  when:
+    - item.disk_resize is defined
+    - has_enough_space
+  failed_when: false
+
+- name: Недостаточно места на {{ disk_storage }} для диска {{ disk_name }}
+  debug:
+    msg: "Недостаточно места на хранилище {{ disk_storage }} для увеличения диска {{ disk_name }} на {{ item.disk_resize }}G"
+  when:
+    - item.disk_resize is defined
+    - not has_enough_space
