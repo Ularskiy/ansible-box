@@ -34,22 +34,22 @@
 
 - name: Ждать выключения ВМ перед удалением
   include_tasks: wait_shutdown.yml
-  when:
-    - item.item.state == 'absent'
-    - item.status == 200
   loop: "{{ check_vm_result.results }}"
   loop_control:
     label: "{{ item.item.name }}"
+  when:
+    - item.item.state == 'absent'
+    - item.status == 200
   tags: [delete]
 
 - name: Удалить ВМ
   include_tasks: delete.yml
-  when:
-    - item.item.state == 'absent'
-    - item.status in [200, 500]
   loop: "{{ check_vm_result.results }}"
   loop_control:
     label: "{{ item.item.name }}"
+  when:
+    - item.item.state == 'absent'
+    - item.status in [200, 500]
   tags: [delete]
 
 - name: Клонировать ВМ
@@ -59,7 +59,7 @@
     label: "{{ item.item.name }}"
   when:
     - item.item.state in ['present', 'started']
-    - item.status in [404, 500]  
+    - item.status in [404, 500]
   tags: [clone]
 
 - name: Подождать снятие lock
@@ -69,34 +69,8 @@
     label: "{{ item.item.name }}"
   when:
     - item.item.state in ['present', 'started']
-    - item.status in [404, 500] 
-  tags: [wait, clone]
-
-- name: Добавить дополнительный диск (если задан)
-  include_tasks: add_disk.yml
-  loop: "{{ vm_list }}"
-  loop_control:
-    label: "{{ item.name }}"
-  when: item.state in ['present', 'started']
-  tags: [disk, add_disk]
-
-- name: Увеличить существующий диск (если задан)
-  include_tasks: resize_disk.yml
-  loop: "{{ vm_list }}"
-  loop_control:
-    label: "{{ item.name }}"
-  when: item.state in ['present', 'started']
-  tags: [disk, resize_disk]
-
-- name: Установить net0 интерфейс (bridge) после клонирования
-  include_tasks: net_config.yml
-  loop: "{{ check_vm_result.results }}"
-  loop_control:
-    label: "{{ item.item.name }}"
-  when:
-    - item.item.state in ['present', 'started']
     - item.status in [404, 500]
-  tags: [net0]
+  tags: [wait, clone]
 
 - name: Настроить Cloud-Init через qm set
   include_tasks: cloud_init_qm_set.yml
@@ -105,6 +79,32 @@
     label: "{{ item.name }}"
   when: item.state in ['present', 'started']
   tags: [cloud_init]
+
+- name: Добавить дополнительный физический диск 
+  include_tasks: add_disk.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.state in ['present', 'started']
+  tags: [disk, add_disk]
+
+- name: Увеличить существующий диск 
+  include_tasks: resize_disk.yml
+  loop: "{{ vm_list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.state in ['present', 'started']
+  tags: [disk, resize_disk]
+
+- name: Установить сетевой интерфейс-bridge (после клонирования)
+  include_tasks: net_config.yml
+  loop: "{{ check_vm_result.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.item.state in ['present', 'started']
+    - item.status in [404, 500]
+  tags: [net0]
 
 - name: Запустить ВМ
   include_tasks: start.yml
