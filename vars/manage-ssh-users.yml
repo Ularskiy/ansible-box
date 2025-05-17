@@ -1,0 +1,9 @@
+users:
+  - name: test-user-1
+    generate_key: true
+    sudo: with_password
+
+  - name: test-user-2
+    generate_key: true
+    sudo: no_password
+

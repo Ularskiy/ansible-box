@@ -1,11 +1,22 @@
 vm_list:
-  - name:  
-    id: 104
+  - name: test-ssh-3 
+    id: 1003
     state: absent
     ci_user: ansible
-    ip: 192.168.10.101
+    ip: 10.96.34.142
     cidr: 24
-    gw: 192.168.10.1
+    gw: 10.96.34.129
     source_vmid: 110
     target_node: alm2a-itpsector-pve
-    bridge: 
+    bridge: br-vlan2875
+
+  - name: test-ssh-4
+    id: 1004
+    state: absent
+    ci_user: ansible
+    ip: 10.96.34.143
+    cidr: 24
+    gw: 10.96.34.129
+    source_vmid: 110
+    target_node: alm2a-itpsector-pve
+    bridge: br-vlan2875
