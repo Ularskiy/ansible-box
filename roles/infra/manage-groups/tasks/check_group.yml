@@ -1,0 +1,48 @@
+- name: Проверить, существует ли группа {{ group_item.name }}
+  getent:
+    database: group
+    key: "{{ group_item.name }}"
+  register: group_info
+  failed_when: false
+  changed_when: false
+
+- name: Установить факт о существовании группы
+  set_fact:
+    group_exists: "{{ group_info is defined and group_info.name is defined }}"
+
+- name: Установить текущий GID и участников
+  set_fact:
+    group_current_gid: "{{ group_info.gid | default(omit) }}"
+    group_current_members: "{{ group_info.members | default([]) }}"
+  when: group_exists
+
+- name: Проверка GID (если задан)
+  fail:
+    msg: >-
+      GID-конфликт: для группы {{ group_item.name }} указан gid={{ group_item.gid }},
+      но в системе уже используется gid={{ group_current_gid }}
+  when:
+    - group_check_gid | bool
+    - group_item.gid is defined
+    - group_exists
+    - group_current_gid is defined
+    - group_item.gid | int != group_current_gid | int
+
+- name: Лог GID конфликт
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: manage-groups
+      action: gid-conflict
+      group: "{{ group_item.name }}"
+      desired_gid: "{{ group_item.gid }}"
+      actual_gid: "{{ group_current_gid }}"
+  when:
+    - group_check_gid | bool
+    - group_item.gid is defined
+    - group_exists
+    - group_current_gid is defined
+    - group_item.gid | int != group_current_gid | int
+    - group_log_enabled | default(true)
+

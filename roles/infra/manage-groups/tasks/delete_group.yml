@@ -1,0 +1,25 @@
+- name: Проверить существование группы и участников
+  include_tasks: check_group.yml
+
+- name: Вывести предупреждение, если в группе остались участники
+  debug:
+    msg: "Группа {{ group_item.name }} содержит участников: {{ group_current_members }} и будет удалена"
+  when:
+    - group_exists
+    - group_current_members | length > 0
+
+- name: Удалить группу {{ group_item.name }}
+  group:
+    name: "{{ group_item.name }}"
+    state: absent
+
+- name: Лог удалена группа
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: manage-groups
+      action: group-removed
+      group: "{{ group_item.name }}"
+  when: group_log_enabled | default(true)
+

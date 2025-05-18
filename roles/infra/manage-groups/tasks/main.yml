@@ -1,2 +1,11 @@
----
-# tasks file for manage-groups
+- name: Обработка списка групп
+  include_tasks: "{{ role_path }}/tasks/{{ item_task }}"
+  loop: "{{ group_list }}"
+  loop_control:
+    loop_var: group_item
+  vars:
+    item_task: >-
+      {{
+        'delete_group.yml' if group_item.state | default('present') == 'absent'
+        else 'create_group.yml'
+      }}

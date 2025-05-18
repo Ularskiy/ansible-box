@@ -1,0 +1,24 @@
+- name: Проверить существование группы и GID
+  include_tasks: check_group.yml
+
+- name: Создать/обновить группу {{ group_item.name }}
+  group:
+    name: "{{ group_item.name }}"
+    state: present
+    system: "{{ group_item.system | default(group_default_system) }}"
+    gid: "{{ group_item.gid | default(omit) }}"
+
+- name: Лог создана/обновлена группа
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: manage-groups
+      action: group-created
+      group: "{{ group_item.name }}"
+      gid: "{{ group_item.gid | default('auto') }}"
+  when: group_log_enabled | default(true)
+
+- name: Добавить участников в группу {{ group_item.name }}
+  include_tasks: manage_members.yml
+  when: group_item.members is defined and group_item.members | length > 0

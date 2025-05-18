@@ -1,2 +1,5 @@
----
-# defaults file for manage-groups
+groups: []
+group_default_system: false
+group_check_gid: true
+group_log_enabled: true
+

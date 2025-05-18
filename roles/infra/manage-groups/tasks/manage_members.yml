@@ -1,0 +1,17 @@
+- name: Добавить пользователей в группу {{ group_item.name }}
+  user:
+    name: "{{ item }}"
+    groups: "{{ group_item.name }}"
+    append: true
+  loop: "{{ group_item.members }}"
+
+- name: Лог добавлены участники группы
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: manage-groups
+      action: group-members-added
+      group: "{{ group_item.name }}"
+      members: "{{ group_item.members }}"
+  when: group_log_enabled | default(true)

@@ -1,0 +1,12 @@
+- name: Управление группами (manage-groups)
+  hosts: test_hosts
+  become: true
+
+  vars_files:
+    - ../inventory/testing/manage-groups/groups_list.yml
+
+  vars:
+    group_list: "{{ group_definitions }}"
+    
+  roles:
+    - infra/manage-groups
