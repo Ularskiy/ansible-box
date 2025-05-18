@@ -1,0 +1,26 @@
+- name: "Создать директорию для хранения SSH-ключей {{ user.name }}"
+  delegate_to: localhost
+  file:
+    path: "{{ ssh_key_storage_path }}/{{ user.name }}"
+    state: directory
+    mode: '0700'
+
+- name: "Генерировать SSH-ключ для {{ user.name }}"
+  delegate_to: localhost
+  community.crypto.openssh_keypair:
+    path: "{{ ssh_key_storage_path }}/{{ user.name }}/id_{{ user.ssh_key_type | default(ssh_key_type_default) }}"
+    type: "{{ user.ssh_key_type | default(ssh_key_type_default) }}"
+    size: "{{ user.ssh_key_bits | default(ssh_key_bits_default) }}"
+    comment: "{{ user.ssh_key_comment | default(user.name ~ '@ansible') }}"
+    force: "{{ user.ssh_key_force | default(false) }}"
+  register: keygen_result
+
+- name: "Логировать генерацию ключа"
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: "manage-ssh"
+      action: "generate-key"
+      user: "{{ user.name }}"
+      details: "{{ keygen_result.filename }}"

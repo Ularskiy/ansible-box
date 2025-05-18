@@ -1,2 +1,6 @@
----
-# defaults file for manage-ssh
+ssh_key_storage_path: "/etc/ansible/ssh_keys"
+ssh_key_type_default: "ed25519"
+ssh_key_bits_default: 4096
+
+users: []
+

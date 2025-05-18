@@ -1,0 +1,42 @@
+- name: Прочитать приватный ключ {{ user.name }}
+  delegate_to: localhost
+  slurp:
+    src: "{{ ssh_key_storage_path }}/{{ user.name }}/id_{{ user.ssh_key_type | default(ssh_key_type_default) }}"
+  register: private_key_raw
+
+- name: Прочитать публичный ключ {{ user.name }}
+  delegate_to: localhost
+  slurp:
+    src: "{{ ssh_key_storage_path }}/{{ user.name }}/id_{{ user.ssh_key_type | default(ssh_key_type_default) }}.pub"
+  register: public_key_raw
+
+- name: Отправить SSH-ключи по email
+  delegate_to: localhost
+  mail:
+    host: "smtp.example.com"
+    port: 587
+    username: "mailer@example.com"
+    password: "{{ smtp_password }}"
+    to: "{{ user.email }}"
+    subject: "SSH-ключи для {{ user.name }}"
+    body: |
+      Привет, {{ user.name }}!
+
+      Твои SSH-ключи были сгенерированы автоматически.
+      Пожалуйста, не передавай их третьим лицам.
+
+      Приватный ключ:
+      -----------------------
+      {{ private_key_raw.content | b64decode }}
+
+      Публичный ключ:
+      -----------------------
+      {{ public_key_raw.content | b64decode }}
+
+      Сохрани приватный ключ в `~/.ssh/id_{{ user.ssh_key_type }}`
+      Публичный можешь использовать для Git и других систем.
+      Пожалуйста не забудь задать пароль приватному ключу с помощью команды ssh-keygen -p -f ~/.ssh/id_rsa
+  when:
+    - user.send_keys_to_email | default(false)
+    - user.email is defined
+

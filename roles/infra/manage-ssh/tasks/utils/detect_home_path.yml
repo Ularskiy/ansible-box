@@ -1,0 +1,9 @@
+- name: Получить информацию о пользователе {{ username }}
+  getent:
+    database: passwd
+    key: "{{ username }}"
+  register: user_info
+
+- name: Установить путь домашнего каталога
+  set_fact:
+    user_home_path: "{{ user_info.ansible_facts.getent_passwd[username][4] }}"

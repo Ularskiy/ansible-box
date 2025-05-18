@@ -1,2 +1,25 @@
----
-# tasks file for manage-ssh
+- name: Генерация SSH-ключей
+  include_tasks: generate_ssh_keys.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+  when:
+    - user.generate_ssh_key | default(false)
+    - user.state | default('present') == 'present'
+
+- name: Установка ключей на хост
+  include_tasks: push_authorized_key.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+  when:
+    - user.generate_ssh_key | default(false)
+    - user.state | default('present') == 'present'
+
+- name: Удаление ключей на хосте
+  include_tasks: delete_authorized_keys.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+  when:
+    - user.state | default('present') == 'absent' or user.ssh_state | default('present') == 'absent'

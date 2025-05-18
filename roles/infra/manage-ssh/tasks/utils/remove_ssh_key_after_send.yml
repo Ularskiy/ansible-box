@@ -1,0 +1,23 @@
+- name: Удалить приватный ключ после отправки
+  delegate_to: localhost
+  file:
+    path: "{{ ssh_key_storage_path }}/{{ user.name }}/id_{{ user.ssh_key_type | default(ssh_key_type_default) }}"
+    state: absent
+  when: user.send_keys_to_email | default(false)
+
+- name: Удалить публичный ключ после отправки
+  delegate_to: localhost
+  file:
+    path: "{{ ssh_key_storage_path }}/{{ user.name }}/id_{{ user.ssh_key_type | default(ssh_key_type_default) }}.pub"
+    state: absent
+  when: user.send_keys_to_email | default(false)
+
+- name: Логировать удаление ключей
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: "manage-ssh"
+      action: "keys-removed-locally"
+      user: "{{ user.name }}"
+      details: "Удалены локальные ключи после отправки на email"

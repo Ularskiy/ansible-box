@@ -1,0 +1,15 @@
+- name: Удалить authorized_keys у пользователя {{ user.name }}
+  file:
+    path: "/home/{{ user.name }}/.ssh/authorized_keys"
+    state: absent
+  when: user.name is defined
+
+- name: Лог: удаление ключей у {{ user.name }}
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: "manage-ssh"
+      action: "delete-key"
+      user: "{{ user.name }}"
+      details: "Удален authorized_keys"

@@ -1,0 +1,8 @@
+users:
+  - name: admin
+    state: present
+    generate_ssh_key: true
+    ssh_key_type: ed25519
+    ssh_key_bits: 256
+    ssh_key_force: true
+

@@ -1,0 +1,9 @@
+- name: Управление SSH-ключами (manage-ssh)
+  hosts: test_hosts
+  become: true
+
+  vars_files:
+    - ../inventory/testing/manage-ssh/ssh_list.yml
+
+  roles:
+    - infra/manage-ssh
