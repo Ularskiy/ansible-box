@@ -11,6 +11,13 @@
     loop_var: item
   when: item.state | default('present') == 'present'
 
+- name: Установить пароль при создании
+  include_tasks: assign_password.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.state | default('present') == 'present' and not users_dry_run | default(false)
+
 - name: Настроить sudo доступ
   include_tasks: configure_sudo.yml
   loop: "{{ users }}"

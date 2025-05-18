@@ -1,3 +1,14 @@
+- name: Проверка активных процессов пользователя
+  shell: "pgrep -u {{ item.name }}"
+  register: user_processes_check
+  changed_when: false
+  failed_when: false
+
+- name: Отказаться от удаления, если есть активные процессы
+  fail:
+    msg: "Нельзя удалить пользователя {{ item.name }}, пока у него есть активные процессы: {{ user_processes_check.stdout_lines }}"
+  when: user_processes_check.stdout != ""
+
 - name: Удалить пользователя {{ item.name }}
   user:
     name: "{{ item.name }}"

@@ -1,0 +1,11 @@
+- name: Проверка существования пользователя {{ item.name }}
+  getent:
+    database: passwd
+    key: "{{ item.name }}"
+  register: user_check
+  failed_when: false
+  changed_when: false
+
+- name: Установить факт user_exists
+  set_fact:
+    user_exists: "{{ user_check.getent is defined }}"

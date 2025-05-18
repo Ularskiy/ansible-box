@@ -4,12 +4,12 @@ users:
     shell: /bin/bash
     sudo: no_password
     groups: ['sudo']
-    state: absent
+    state: present
 
   - name: readonly
     shell: /bin/false
     groups: []
-    state: absent
+    state: present
     disabled: absent
 
 users_dry_run: false
