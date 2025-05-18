@@ -1,2 +1,8 @@
----
-# defaults file for manage-users
+users: []
+users_dry_run: false
+default_shell: /bin/bash
+protected_users:
+  - root
+  - ansible
+  - automation
+sudoers_file: /etc/sudoers.d

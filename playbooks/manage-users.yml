@@ -1,0 +1,10 @@
+- name: Управление пользователями (manage-users)
+  hosts: test_hosts
+  become: true
+
+  vars_files:
+    - ../inventory/testing/manage-users/user_list.yml
+
+  roles:
+    - infra/manage-users
+

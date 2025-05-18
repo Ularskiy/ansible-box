@@ -1,2 +1,26 @@
----
-# tasks file for manage-users
+- name: Проверить параметры пользователей
+  include_tasks: validate_user.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+
+- name: Создать пользователей
+  include_tasks: create_user.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.state | default('present') == 'present'
+
+- name: Настроить sudo доступ
+  include_tasks: configure_sudo.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.state | default('present') == 'present'
+
+- name: Удалить пользователей
+  include_tasks: delete_user.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.state | default('present') == 'absent'

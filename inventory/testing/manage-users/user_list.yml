@@ -1,0 +1,16 @@
+users:
+  - name: admin
+    uid: 1100
+    shell: /bin/bash
+    sudo: no_password
+    groups: ['sudo']
+    state: absent
+
+  - name: readonly
+    shell: /bin/false
+    groups: []
+    state: absent
+    disabled: true
+
+users_dry_run: false
+default_shell: /bin/bash

@@ -1,0 +1,26 @@
+- name: "Создание пользователя {{ item.name }}"
+  user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid | default(omit) }}"
+    gid: "{{ item.gid | default(omit) }}"
+    shell: "{{ item.shell | default(default_shell) }}"
+    groups: "{{ item.groups | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
+    create_home: true
+    state: present
+    append: true
+  when: not users_dry_run | default(false)
+
+- name: "DRY-RUN: Эмуляция создания пользователя {{ item.name }}"
+  debug:
+    msg: "DRY-RUN: Создали бы пользователя {{ item.name }} с shell={{ item.shell }}, groups={{ item.groups }}"
+  when: users_dry_run | default(false)
+
+- name: "Логирование создания пользователя {{ item.name }}"
+  include_role:
+    name: shared/log-events
+  vars:
+    log_action: "created"
+    log_level: "INFO"
+    log_message: "User {{ item.name }} создан. Shell: {{ item.shell }} Groups: {{ item.groups | default('[]') }}"
+  when: not users_dry_run | default(false)

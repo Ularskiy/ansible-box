@@ -1,0 +1,30 @@
+- name: Определить режим sudo
+  set_fact:
+    sudo_mode: "{{ item.sudo | default('none') }}"
+
+- name: Настроить sudo с паролем
+  template:
+    src: sudoers_with_password.j2
+    dest: "{{ sudoers_file }}/{{ item.name }}"
+    mode: '0440'
+  when: sudo_mode == 'with_password'
+
+- name: Настроить sudo без пароля
+  template:
+    src: sudoers_no_password.j2
+    dest: "{{ sudoers_file }}/{{ item.name }}"
+    mode: '0440'
+  when: sudo_mode == 'no_password'
+
+- name: Настроить ограниченный sudo
+  template:
+    src: sudoers_limited.j2
+    dest: "{{ sudoers_file }}/{{ item.name }}"
+    mode: '0440'
+  when: sudo_mode == 'limited' and item.allowed_commands is defined
+
+- name: Удалить sudo файл, если отключён
+  file:
+    path: "{{ sudoers_file }}/{{ item.name }}"
+    state: absent
+  when: sudo_mode == 'none'
