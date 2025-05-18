@@ -1,0 +1,18 @@
+- name: Удалить пользователя {{ item.name }}
+  user:
+    name: "{{ item.name }}"
+    state: absent
+    remove: true
+
+- name: Логирование удаления пользователя
+  include_role:
+    name: shared/log-events
+  vars:
+    log_action: "deleted"
+    log_level: "WARNING"
+    log_message: |
+      User {{ item.name }} удалён.
+      Shell: {{ user_shell.stdout | default('unknown') }}
+      Groups: {{ user_groups.stdout | default('unknown') }}
+      Home size: {{ home_dir_size.stdout | default('n/a') }}
+      Active processes: {{ user_processes.stdout | default('none') }}

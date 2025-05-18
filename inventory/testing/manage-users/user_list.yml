@@ -10,7 +10,7 @@ users:
     shell: /bin/false
     groups: []
     state: absent
-    disabled: true
+    disabled: absent
 
 users_dry_run: false
 default_shell: /bin/bash

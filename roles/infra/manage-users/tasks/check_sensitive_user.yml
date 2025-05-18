@@ -1,0 +1,10 @@
+- name: Защита от удаления системных учёток
+  assert:
+    that:
+      - item.name not in protected_users
+    fail_msg: "Удаление пользователя {{ item.name }} запрещено."
+
+- name: Подтверждение удаления чувствительной учётной записи
+  pause:
+    prompt: "Вы уверены, что хотите удалить чувствительного пользователя {{ item.name }}?"
+  when: item.name in sensitive_accounts

@@ -1,39 +1,21 @@
-- name: Защита от удаления системных учёток
-  assert:
-    that:
-      - item.name not in protected_users
-    fail_msg: "Удаление пользователя {{ item.name }} запрещено."
+- name: Проверка защищённости пользователя
+  include_tasks: check_sensitive_user.yml
   when: not users_dry_run | default(false)
 
-- name: Получить список процессов пользователя {{ item.name }}
-  shell: "pgrep -u {{ item.name }}"
-  register: user_processes
-  changed_when: false
-  failed_when: false
+- name: Сбор информации
+  include_tasks: collect_user_facts.yml
   when: not users_dry_run | default(false)
 
-- name: Показать активные процессы
-  debug:
-    msg: "У {{ item.name }} активные процессы: {{ user_processes.stdout_lines }}"
-  when: user_processes.stdout != "" and not users_dry_run | default(false)
-
-- name: Удалить пользователя {{ item.name }}
-  user:
-    name: "{{ item.name }}"
-    state: absent
-    remove: true
+- name: Удаление пользователя
+  include_tasks: remove_user.yml
   when: not users_dry_run | default(false)
 
 - name: "DRY-RUN: Удалили бы пользователя {{ item.name }}"
   debug:
-    msg: "DRY-RUN: Удалили бы пользователя {{ item.name }} включая home и учётку."
+    msg: |
+      DRY-RUN: Удалили бы пользователя {{ item.name }}
+      Shell: {{ user_shell.stdout | default('unknown') }}
+      Groups: {{ user_groups.stdout | default('unknown') }}
+      Home size: {{ home_dir_size.stdout | default('n/a') }}
+      Active processes: {{ user_processes.stdout | default('none') }}
   when: users_dry_run | default(false)
-
-- name: Логирование удаления пользователя
-  include_role:
-    name: shared/log-events
-  vars:
-    log_action: "deleted"
-    log_level: "WARNING"
-    log_message: "User {{ item.name }} удалён. Active processes: {{ user_processes.stdout | default('none') }}"
-  when: not users_dry_run | default(false)

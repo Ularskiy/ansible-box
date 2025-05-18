@@ -1,8 +1,12 @@
 users: []
 users_dry_run: false
 default_shell: /bin/bash
+
 protected_users:
   - root
   - ansible
-  - automation
+
+sensitive_accounts:
+  - readonly
+
 sudoers_file: /etc/sudoers.d
