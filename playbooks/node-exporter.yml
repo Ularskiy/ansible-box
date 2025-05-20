@@ -1,0 +1,12 @@
+- name: Установка Node Exporter
+  hosts: test_hosts
+  become: true
+
+  vars:
+    node_exporter_version: "1.9.1"
+    node_exporter_port: 9100
+    node_exporter_state: "latest"
+    node_exporter_healthcheck_enabled: true
+
+  roles:
+    - monitoring/node-exporter

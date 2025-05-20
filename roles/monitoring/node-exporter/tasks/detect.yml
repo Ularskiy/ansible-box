@@ -1,0 +1,4 @@
+- name: Установить архитектуру
+  set_fact:
+    node_exporter_arch: >-
+      {{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}

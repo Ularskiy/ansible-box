@@ -1,0 +1,12 @@
+- name: Установить systemd unit
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: '0644'
+
+- name: Обновить systemd и перезапустить
+  systemd:
+    name: node_exporter
+    daemon_reload: true
+    enabled: true
+    state: restarted

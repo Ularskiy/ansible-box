@@ -1,0 +1,21 @@
+- name: Создать группу {{ node_exporter_group }}
+  group:
+    name: "{{ node_exporter_group }}"
+    system: true
+
+- name: Создать пользователя {{ node_exporter_user }}
+  user:
+    name: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_group }}"
+    shell: /sbin/nologin
+    system: true
+    create_home: false
+
+- name: Скачать Node Exporter
+  get_url:
+    url: "{{ node_exporter_download_url }}"
+    dest: "{{ node_exporter_bin_path }}"
+    mode: '0755'
+    owner: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_group }}"
+    force: true

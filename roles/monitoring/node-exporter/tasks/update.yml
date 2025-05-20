@@ -1,0 +1,8 @@
+- name: Обновить Node Exporter бинарник (всегда скачивать)
+  get_url:
+    url: "{{ node_exporter_download_url }}"
+    dest: "{{ node_exporter_bin_path }}"
+    mode: '0755'
+    owner: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_group }}"
+    force: true
