@@ -1,8 +1,0 @@
-- name: Проверить наличие бинарника Node Exporter
-  stat:
-    path: "{{ node_exporter_bin_path }}"
-  register: node_exporter_stat
-
-- name: Установить факт установленности
-  set_fact:
-    node_exporter_installed: "{{ node_exporter_stat.stat.exists }}"
