@@ -1,20 +1,25 @@
 - name: Проверить наличие бинарника Node Exporter
   stat:
     path: "{{ node_exporter_bin_path }}"
-  register: node_exporter_stat
+  register: node_exporter_bin_stat
+
+- name: Проверить размер бинарника
+  debug:
+    msg: "Размер: {{ node_exporter_bin_stat.stat.size | default('N/A') }}"
+  when: node_exporter_bin_stat.stat.exists | default(false)
 
 - name: Установить факт установленности
   set_fact:
-    node_exporter_installed: "{{ node_exporter_stat.stat.exists }}"
+    node_exporter_installed: "{{ node_exporter_bin_stat.stat.exists and (node_exporter_bin_stat.stat.size | default(0)) > 1000000 }}"
 
 - name: Получить текущую версию node_exporter
   command: "{{ node_exporter_bin_path }} --version"
   register: node_exporter_version_cmd
   changed_when: false
   failed_when: false
-  when: node_exporter_stat.stat.exists
+  when: node_exporter_installed
 
-- name: Извлечь номер версии из вывода
+- name: Извлечь номер версии
   set_fact:
     node_exporter_installed_version: "{{ node_exporter_version_cmd.stdout | regex_search('node_exporter, version ([0-9.]+)', '\\1') }}"
   when: node_exporter_version_cmd.stdout is defined

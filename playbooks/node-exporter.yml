@@ -8,5 +8,24 @@
     node_exporter_state: "latest"
     node_exporter_healthcheck_enabled: true
 
+    node_exporter_groups:
+      - name: node_exporter
+        system: true
+        members: [node_exporter]
+        state: absent
+
+    node_exporter_users:
+      - name: node_exporter
+        group: node_exporter
+        system: true
+        shell: /sbin/nologin
+        create_home: false
+        state: absent
+
+    group_list: "{{ node_exporter_groups }}"
+    users: "{{ node_exporter_users }}"
+
   roles:
+    - infra/manage-groups
+    - infra/manage-users
     - monitoring/node-exporter

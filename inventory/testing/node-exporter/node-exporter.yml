@@ -1,5 +1,0 @@
-group_definitions:
-  - name: GacciMucci
-    state: absent
-    system: true
-    members: [admin, ularskiy]

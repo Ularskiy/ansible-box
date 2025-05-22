@@ -13,7 +13,10 @@
 
 - name: Обновление
   include_tasks: update.yml
-  when: node_exporter_state == "latest" and node_exporter_needs_update
+  when:
+    - node_exporter_state == "latest"
+    - node_exporter_installed | default(false)
+    - node_exporter_needs_update | default(false)
 
 - name: Удаление
   include_tasks: remove.yml
@@ -25,4 +28,5 @@
 
 - name: Проверка доступности
   include_tasks: check_health.yml
-  when: node_exporter_healthcheck_enabled and node_exporter_state != "absent"
+  when: node_exporter_healthcheck_enabled | default(false) and node_exporter_state != "absent"
+

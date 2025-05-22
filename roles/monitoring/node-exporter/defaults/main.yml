@@ -3,8 +3,10 @@ node_exporter_arch: "amd64"
 node_exporter_port: 9100
 node_exporter_bin_dir: "/usr/local/bin"
 node_exporter_bin_path: "{{ node_exporter_bin_dir }}/node_exporter"
-node_exporter_download_url: "http://your.repo/{{ node_exporter_version }}/node_exporter"
+node_exporter_download_url: "http://192.168.195.195/soft/monitoring/node_exporter/node_exporter-{{ node_exporter_version }}.linux-{{ node_exporter_arch }}/node_exporter"
 node_exporter_user: "node_exporter"
 node_exporter_group: "node_exporter"
 node_exporter_state: "present"     # present / latest / absent
+node_exporter_unit_path: "/etc/systemd/system/node_exporter.service"
 node_exporter_healthcheck_enabled: true
+

@@ -1,16 +1,10 @@
 users:
-  - name: admin
+  - name: node_exporter
     uid: 1100
     shell: /bin/bash
     sudo: no_password
     groups: ['sudo']
-    state: present
-
-  - name: readonly
-    shell: /bin/false
-    groups: []
-    state: present
-    disabled: absent
+    state: absent
 
 users_dry_run: false
 default_shell: /bin/bash

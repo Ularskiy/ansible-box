@@ -2,4 +2,4 @@ group_definitions:
   - name: GacciMucci
     state: absent
     system: true
-    members: [admin, ularskiy]
+    members: [node_exporter]

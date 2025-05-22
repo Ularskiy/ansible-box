@@ -13,16 +13,9 @@
 
 - name: Удалить systemd unit
   file:
-    path: /etc/systemd/system/node_exporter.service
+    path: "{{ node_exporter_unit_path }}"
     state: absent
 
-- name: Удалить пользователя
-  user:
-    name: "{{ node_exporter_user }}"
-    state: absent
-    remove: yes
-
-- name: Удалить группу
-  group:
-    name: "{{ node_exporter_group }}"
-    state: absent
+- name: Очистить статус сервиса node_exporter
+  command: systemctl reset-failed node_exporter.service
+  ignore_errors: true

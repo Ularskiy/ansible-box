@@ -1,4 +1,12 @@
-- name: Обновить Node Exporter бинарник (всегда скачивать)
+- name: Остановить node_exporter
+  systemd:
+    name: node_exporter
+    state: stopped
+    daemon_reload: true
+  ignore_errors: true
+  notify: restart node_exporter
+
+- name: Обновить Node Exporter бинарник
   get_url:
     url: "{{ node_exporter_download_url }}"
     dest: "{{ node_exporter_bin_path }}"
