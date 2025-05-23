@@ -1,9 +1,0 @@
-- name: Проверить доступность /metrics
-  uri:
-    url: "http://localhost:{{ node_exporter_port }}/metrics"
-    status_code: 200
-    return_content: false
-  register: node_exporter_health
-  retries: 3
-  delay: 2
-  until: node_exporter_health.status == 200
