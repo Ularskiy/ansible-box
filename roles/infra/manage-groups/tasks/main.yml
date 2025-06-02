@@ -1,11 +1,24 @@
-- name: Обработка списка групп
-  include_tasks: "{{ role_path }}/tasks/{{ item_task }}"
+- name: Проверка входных данных
+  assert:
+    that:
+      - group_list is defined
+      - group_list | length > 0
+    fail_msg: "group_list не определён или пуст"
+
+- name: Обработка создания и обновления групп
+  include_tasks: create_or_update_group.yml
   loop: "{{ group_list }}"
   loop_control:
-    loop_var: group_item
+    loop_var: group_loop_item
   vars:
-    item_task: >-
-      {{
-        'delete_group.yml' if group_item.state | default('present') == 'absent'
-        else 'create_group.yml'
-      }}
+    group_item: "{{ group_loop_item }}"
+  when: group_loop_item.state | default('present') == 'present'
+
+- name: Обработка удаления групп
+  include_tasks: delete_group.yml
+  loop: "{{ group_list }}"
+  loop_control:
+    loop_var: group_loop_item
+  vars:
+    group_item: "{{ group_loop_item }}"
+  when: group_loop_item.state | default('present') == 'absent'

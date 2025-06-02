@@ -1,7 +1,7 @@
 - name: Проверить существование группы и участников
   include_tasks: check_group.yml
 
-- name: Вывести предупреждение, если в группе остались участники
+- name: Предупреждение в группе остались участники
   debug:
     msg: "Группа {{ group_item.name }} содержит участников: {{ group_current_members }} и будет удалена"
   when:
@@ -22,4 +22,3 @@
       action: group-removed
       group: "{{ group_item.name }}"
   when: group_log_enabled | default(true)
-

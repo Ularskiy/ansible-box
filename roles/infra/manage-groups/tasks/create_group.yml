@@ -1,12 +1,21 @@
-- name: Проверить существование группы и GID
+- name: Проверка группы перед созданием
   include_tasks: check_group.yml
 
-- name: Создать/обновить группу {{ group_item.name }}
-  group:
+- name: Создать или обновить группу
+  ansible.builtin.group:
     name: "{{ group_item.name }}"
-    state: present
-    system: "{{ group_item.system | default(group_default_system) }}"
-    gid: "{{ group_item.gid | default(omit) }}"
+    gid: >-
+      {{
+        group_item.gid
+          if group_item.gid is defined else
+        (
+          group_gid_map[group_item.name]
+            if group_gid_map is defined and group_gid_map[group_item.name] is defined
+            else omit
+        )
+      }}
+    state: "{{ group_item.state }}"
+    system: "{{ group_item.system | default(omit) }}"
 
 - name: Лог создана/обновлена группа
   include_role:
@@ -16,9 +25,5 @@
       source: manage-groups
       action: group-created
       group: "{{ group_item.name }}"
-      gid: "{{ group_item.gid | default('auto') }}"
+      gid: "{{ group_item.gid }}"
   when: group_log_enabled | default(true)
-
-- name: Добавить участников в группу {{ group_item.name }}
-  include_tasks: manage_members.yml
-  when: group_item.members is defined and group_item.members | length > 0

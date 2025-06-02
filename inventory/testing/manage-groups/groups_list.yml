@@ -1,5 +1,5 @@
 group_definitions:
-  - name: GacciMucci
-    state: absent
-    system: true
+  - name: GacciNoMucci
+    state: present
+    system: false
     members: [node_exporter]

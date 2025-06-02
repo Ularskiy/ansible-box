@@ -16,26 +16,29 @@
     group_current_members: "{{ group_info.members | default([]) }}"
   when: group_exists
 
-- name: Проверка запрещён ли GID < 1000 (если не разрешено явно)
+- name: Блокировка системной группы без разрешения
   fail:
     msg: >-
-      Безопасность: GID < 1000 для группы {{ group_item.name }},
-      и при этом group_allow_system_gid не разрешён.
+      Системная группа {{ group_item.name }} без group_allow_system_gid.
+      Это приведёт к GID < 1000. Убери system: true или задай group_allow_system_gid: true.
   when:
+    - group_item.system | default(false) | bool
     - group_item.gid is not defined
-    - group_gid_map is defined
-    - (group_gid_map[group_item.name] | int) < 1000
     - not (group_item.group_allow_system_gid | default(false))
 
-- name: Проверка ЯВНО заданного GID < 1000 (если не разрешено)
+- name: Проверка явно заданного GID < 1000 (если не разрешено)
   fail:
     msg: >-
-      Безопасность: GID {{ group_item.gid }} < 1000 для группы {{ group_item.name }},
-      это системный диапазон. Установи group_allow_system_gid=true, если уверен.
+      Безопасность: GID {{ group_item.gid }} < 1000 для {{ group_item.name }},
+      это системный диапазон. Задай group_allow_system_gid: true, если уверен.
   when:
     - group_item.gid is defined
     - (group_item.gid | int) < 1000
     - not (group_item.group_allow_system_gid | default(false))
+
+- name: Найти свободный GID при отсутствии заданного
+  include_tasks: find_free_gid.yml
+  when: group_item.gid is not defined
 
 - name: Проверка GID-конфликта
   fail:
@@ -48,3 +51,21 @@
     - group_exists
     - group_current_gid is defined
     - (group_item.gid | int) != (group_current_gid | int)
+
+- name: Создать или обновить группу
+  ansible.builtin.group:
+    name: "{{ group_item.name }}"
+    gid: "{{ group_item.gid | default(omit) }}"
+    state: "{{ group_item.state }}"
+    system: "{{ group_item.system | default(omit) }}"
+
+- name: Лог создана/обновлена группа
+  include_role:
+    name: shared/log-events
+  vars:
+    log_event:
+      source: manage-groups
+      action: group-created
+      group: "{{ group_item.name }}"
+      gid: "{{ group_item.gid }}"
+  when: group_log_enabled | default(true)

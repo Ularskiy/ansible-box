@@ -1,0 +1,23 @@
+- name: Получить список всех групп
+  command: getent group
+  register: all_groups
+  changed_when: false
+
+- name: Собрать список занятых GID
+  set_fact:
+    used_gids: >-
+      {{
+        all_groups.stdout_lines
+        | select('match', '^[^:]+:[^:]*:\\d+:')
+        | map('regex_replace', '^[^:]+:[^:]*:(\\d+):.*$', '\\1')
+        | map('int')
+        | list
+      }}
+
+- name: Найти первый свободный GID >= 1000
+  set_fact:
+    group_item_gid: "{{ (range(1000, 60000) | difference(used_gids) | list)[0] }}"
+
+- name: Установить GID в group_item
+  set_fact:
+    group_item: "{{ group_item | combine({'gid': group_item_gid}) }}"
