@@ -1,10 +1,23 @@
-- name: Удалить authorized_keys у пользователя {{ user.name }}
-  file:
-    path: "/home/{{ user.name }}/.ssh/authorized_keys"
+- name: Получить домашнюю директорию пользователя {{ user.name }}
+  include_tasks: utils/detect_home_path.yml
+  vars:
+    username: "{{ user.name }}"
+
+- name: Удалить блок ключей managed-by manage-ssh
+  blockinfile:
+    path: "{{ user_home_path }}/.ssh/authorized_keys"
+    marker: "# {mark} managed-by manage-ssh"
     state: absent
   when: user.name is defined
 
-- name: Лог: удаление ключей у {{ user.name }}
+- name: Удалить локальные ключи для {{ user.name }}
+  file:
+    path: "{{ ssh_key_storage_path }}/{{ user.name }}"
+    state: absent
+  delegate_to: localhost
+  when: user.state | default('present') == 'absent'
+
+- name: Лог удаление ключей у {{ user.name }}
   include_role:
     name: shared/log-events
   vars:
@@ -12,4 +25,4 @@
       source: "manage-ssh"
       action: "delete-key"
       user: "{{ user.name }}"
-      details: "Удален authorized_keys"
+      details: "Удален блок ключей и локальный storage"

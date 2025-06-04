@@ -1,6 +1,6 @@
 users:
   - name: node_exporter
-    state: present
+    state: absent
     generate_ssh_key: true
     ssh_key_type: ed25519
     ssh_key_bits: 256

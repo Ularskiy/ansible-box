@@ -3,10 +3,10 @@ users:
     uid: 1002
     shell: /bin/bash
     sudo: none
-    groups: [''] 
+    groups: ['sudo'] 
     remove_groups: [''] 
     manage_existing: false
-    state: absent
+    state: present
     system: false
 
 users_dry_run: false
