@@ -1,5 +1,6 @@
 users: []
 users_dry_run: false
+
 default_shell: /bin/bash
 
 protected_users:

@@ -1,0 +1,40 @@
+- name: Получить текущий shell {{ item.name }}
+  command: "getent passwd {{ item.name }}"
+  register: passwd_entry
+  changed_when: false
+
+- name: Извлечь текущие параметры
+  set_fact:
+    current_shell: "{{ passwd_entry.stdout.split(":")[-1] }}"
+
+- name: Обновить shell, если отличается
+  user:
+    name: "{{ item.name }}"
+    shell: "{{ item.shell }}"
+  when:
+    - item.shell is defined
+    - item.shell != current_shell
+
+- name: Обновить comment, если отличается
+  user:
+    name: "{{ item.name }}"
+    comment: "{{ item.comment }}"
+  when:
+    - item.comment is defined
+    - item.comment != passwd_entry.stdout.split(":")[4]
+
+- name: Обновить группы, если заданы
+  user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    append: true
+  when:
+    - item.groups is defined
+
+- name: Логирование изменений
+  include_role:
+    name: shared/log-events
+  vars:
+    log_action: "updated"
+    log_level: "INFO"
+    log_message: "User {{ item.name }} обновлён. Shell: {{ item.shell }} Comment: {{ item.comment }} Groups: {{ item.groups }}"

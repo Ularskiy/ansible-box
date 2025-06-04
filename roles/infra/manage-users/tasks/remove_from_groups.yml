@@ -1,0 +1,9 @@
+- name: Удалить пользователя {{ item.name }} из групп
+  user:
+    name: "{{ item.name }}"
+    groups: "{{ item.remove_groups }}"
+    append: no
+  when:
+    - item.remove_groups is defined
+    - item.remove_groups | length > 0
+    - user_exists | default(false)

@@ -4,21 +4,46 @@
   loop_control:
     loop_var: item
 
+- name: Выполнить pre-check пользователя
+  include_tasks: check_user_exists.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+
+- name: Удалить из групп
+  include_tasks: remove_from_groups.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.remove_groups is defined
+
 - name: Создать пользователей
   include_tasks: create_user.yml
   loop: "{{ users }}"
   loop_control:
     loop_var: item
-  when: item.state | default('present') == 'present'
+  when:
+    - item.state | default('present') == 'present'
+    - not item.manage_existing | default(false)
 
-- name: Установить пароль при создании
+- name: Управление существующими пользователями
+  include_tasks: update_existing_user.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when:
+    - item.state | default('present') == 'present'
+    - item.manage_existing | default(false)
+    - user_exists | default(false)
+
+- name: Установить пароль
   include_tasks: assign_password.yml
   loop: "{{ users }}"
   loop_control:
     loop_var: item
-  when: item.state | default('present') == 'present' and not users_dry_run | default(false)
+  when: item.state | default('present') == 'present'
 
-- name: Настроить sudo доступ
+- name: Настроить sudo
   include_tasks: configure_sudo.yml
   loop: "{{ users }}"
   loop_control:

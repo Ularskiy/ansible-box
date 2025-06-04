@@ -8,4 +8,4 @@
 
 - name: Установить факт user_exists
   set_fact:
-    user_exists: "{{ user_check.getent is defined }}"
+    user_exists: "{{ user_check.ansible_facts.getent_passwd[item.name] is defined }}"

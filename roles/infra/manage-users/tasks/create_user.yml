@@ -1,3 +1,42 @@
+- name: Проверка существования пользователя {{ item.name }}
+  getent:
+    database: passwd
+    key: "{{ item.name }}"
+  register: user_check
+  failed_when: false
+  changed_when: false
+  when: not users_dry_run | default(false)
+
+- name: Проверка UID на конфликт
+  shell: "getent passwd | awk -F: '{print $3}' | grep -q '^{{ item.uid }}$'"
+  register: uid_check
+  changed_when: false
+  failed_when: false
+  when: item.uid is defined and not users_dry_run | default(false)
+
+- name: Отладка - UID уже используется
+  debug:
+    msg: "UID {{ item.uid }} уже используется. Пользователь {{ item.name }} не будет создан."
+  when:
+    - item.uid is defined
+    - uid_check is defined
+    - uid_check.rc is defined
+    - uid_check.rc == 0
+    - not users_dry_run | default(false)
+
+- name: Логирование конфликта UID
+  include_role:
+    name: shared/log-events
+  vars:
+    log_action: "skipped"
+    log_level: "WARNING"
+    log_message: "UID {{ item.uid }} уже используется. Пользователь {{ item.name }} не создан."
+  when:
+    - item.uid is defined
+    - uid_check is defined
+    - uid_check.rc == 0
+    - not users_dry_run | default(false)
+
 - name: "Создание пользователя {{ item.name }}"
   user:
     name: "{{ item.name }}"
@@ -9,7 +48,9 @@
     create_home: true
     state: present
     append: true
-  when: not users_dry_run | default(false)
+  when:
+    - not users_dry_run | default(false)
+    - item.uid is not defined or uid_check.rc != 0
 
 - name: "DRY-RUN: Эмуляция создания пользователя {{ item.name }}"
   debug:
@@ -23,4 +64,6 @@
     log_action: "created"
     log_level: "INFO"
     log_message: "User {{ item.name }} создан. Shell: {{ item.shell }} Groups: {{ item.groups | default('[]') }}"
-  when: not users_dry_run | default(false)
+  when:
+    - not users_dry_run | default(false)
+    - item.uid is not defined or uid_check.rc != 0
