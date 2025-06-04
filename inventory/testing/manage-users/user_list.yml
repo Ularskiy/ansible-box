@@ -2,11 +2,11 @@ users:
   - name: node_exporter
     uid: 1002
     shell: /bin/bash
-    sudo: no_password 
+    sudo: none
     groups: [''] 
-    remove_groups: ['sudo'] 
-    manage_existing: true
-    state: present
+    remove_groups: [''] 
+    manage_existing: false
+    state: absent
     system: false
 
 users_dry_run: false

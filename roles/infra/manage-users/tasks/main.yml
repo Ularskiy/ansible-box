@@ -43,12 +43,19 @@
     loop_var: item
   when: item.state | default('present') == 'present'
 
-- name: Настроить sudo
+- name: Настроить sudo для активных пользователей
   include_tasks: configure_sudo.yml
   loop: "{{ users }}"
   loop_control:
     loop_var: item
   when: item.state | default('present') == 'present'
+
+- name: Удалить sudo-конфигурацию у удаляемых пользователей
+  include_tasks: configure_sudo.yml
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: item
+  when: item.state | default('present') == 'absent'
 
 - name: Удалить пользователей
   include_tasks: delete_user.yml

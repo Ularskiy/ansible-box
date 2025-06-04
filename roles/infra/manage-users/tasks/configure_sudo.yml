@@ -23,8 +23,9 @@
     mode: '0440'
   when: sudo_mode == 'limited' and item.allowed_commands is defined
 
-- name: Удалить sudo файл, если отключён
+- name: Удалить sudo файл, если отключён или пользователь удаляется
   file:
     path: "{{ sudoers_file }}/{{ item.name }}"
     state: absent
-  when: sudo_mode == 'none'
+  when:
+    - sudo_mode == 'none' or item.state | default('present') == 'absent'
