@@ -1,8 +1,24 @@
-- name: Удалить пользователя {{ item.name }} из групп
-  user:
-    name: "{{ item.name }}"
-    groups: "{{ item.remove_groups }}"
-    append: no
+- name: Удалить пользователя {{ item.name }} из указанных групп
+  become: true
+  shell: "gpasswd -d {{ item.name }} {{ group }}"
+  loop: "{{ item.remove_groups }}"
+  loop_control:
+    loop_var: group
+  register: remove_group_result
+  changed_when: "'is not a member' not in remove_group_result.stdout"
+  failed_when: false
+  when:
+    - item.remove_groups is defined
+    - item.remove_groups | length > 0
+    - user_exists | default(false)
+
+- name: Логирование удаления пользователя {{ item.name }} из групп
+  include_role:
+    name: shared/log-events
+  vars:
+    log_action: "removed_from_groups"
+    log_level: "INFO"
+    log_message: "Пользователь {{ item.name }} исключён из групп: {{ item.remove_groups }}"
   when:
     - item.remove_groups is defined
     - item.remove_groups | length > 0

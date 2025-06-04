@@ -1,10 +1,14 @@
 users:
   - name: node_exporter
-    uid: 1100
+    uid: 1002
     shell: /bin/bash
-    sudo: no_password
-    groups: ['sudo']
-    state: absent
+    sudo: no_password 
+    groups: [''] 
+    remove_groups: ['sudo'] 
+    manage_existing: true
+    state: present
+    system: false
 
 users_dry_run: false
 default_shell: /bin/bash
+

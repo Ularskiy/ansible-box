@@ -5,7 +5,7 @@
 
 - name: Извлечь текущие параметры
   set_fact:
-    current_shell: "{{ passwd_entry.stdout.split(":")[-1] }}"
+    current_shell: "{{ passwd_entry.stdout.split(':')[-1] }}"
 
 - name: Обновить shell, если отличается
   user:
