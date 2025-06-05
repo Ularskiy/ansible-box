@@ -1,0 +1,32 @@
+- name: Удалить временный бинарник
+  file:
+    path: "{{ node_exporter_tmp_bin }}"
+    state: absent
+
+- name: Вычислить URL загрузки
+  set_fact:
+    node_exporter_download_url: "{{ node_exporter_local_base_url }}/{{ node_exporter_path_in_url }}"
+
+- name: Скачивание бинарника Node Exporter
+  ansible.builtin.get_url:
+    url: "{{ node_exporter_download_url }}"
+    dest: "{{ node_exporter_tmp_bin }}"
+    mode: '0755'
+    force: yes
+  register: download_result
+  ignore_errors: true
+
+- name: Проверка размера скачанного файла
+  stat:
+    path: "{{ node_exporter_tmp_bin }}"
+  register: node_exporter_stat
+
+- name: Отметить, что fallback нужен
+  set_fact:
+    use_fallback_node_exporter: true
+  when: node_exporter_stat.stat.size is not defined or node_exporter_stat.stat.size < 10000000
+
+- name: Отметить, что fallback не нужен
+  set_fact:
+    use_fallback_node_exporter: false
+  when: node_exporter_stat.stat.size is defined and node_exporter_stat.stat.size >= 10000000

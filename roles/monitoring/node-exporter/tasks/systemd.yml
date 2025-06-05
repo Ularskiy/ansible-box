@@ -1,0 +1,12 @@
+- name: Создать systemd unit-файл
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: '0644'
+  notify: Перезапустить node_exporter
+
+- name: Перезапустить службу
+  systemd:
+    name: node_exporter
+    state: restarted
+    enabled: yes

@@ -1,17 +1,33 @@
-- name: "Остановка и отключение службы node_exporter"
+- name: Остановить node_exporter
   systemd:
     name: node_exporter
     state: stopped
     enabled: no
-    daemon_reload: yes
   ignore_errors: true
 
-- name: "Удаление systemd unit-файла node_exporter"
+- name: Удалить бинарник Node Exporter
+  file:
+    path: "{{ node_exporter_bin_path }}"
+    state: absent
+
+- name: Удалить systemd unit
   file:
     path: /etc/systemd/system/node_exporter.service
     state: absent
 
-- name: "Удаление бинарника node_exporter"
-  file:
-    path: "{{ node_exporter_binary_path }}"
-    state: absent
+- name: Перезагрузить systemd daemon
+  systemd:
+    daemon_reload: yes
+
+- name: Очистить failed unit для node_exporter
+  ansible.builtin.command: systemctl reset-failed node_exporter.service
+  when: ansible_service_mgr == "systemd"
+  ignore_errors: true
+
+- name: Полная перезагрузка systemd
+  ansible.builtin.command: systemctl daemon-reexec
+  when:
+    - ansible_service_mgr == "systemd"
+    - "'manual' in ansible_run_tags | default([])"
+  ignore_errors: true
+  tags: [manual, dangerous]

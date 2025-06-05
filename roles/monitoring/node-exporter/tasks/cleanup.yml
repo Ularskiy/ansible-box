@@ -1,0 +1,4 @@
+- name: Удалить временный бинарник
+  file:
+    path: "{{ node_exporter_tmp_bin }}"
+    state: absent

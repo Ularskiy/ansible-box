@@ -1,0 +1,19 @@
+- name: Проверить статус службы
+  systemd:
+    name: node_exporter
+  register: service_status
+
+- name: Ошибка, если служба не активна
+  fail:
+    msg: "Node Exporter не запущен!"
+  when: service_status.status.ActiveState != "active"
+
+- name: Проверка доступности метрик
+  uri:
+    url: "http://localhost:{{ node_exporter_port }}/metrics"
+    return_content: no
+    status_code: 200
+  register: metrics_check
+  retries: 3
+  delay: 2
+  until: metrics_check.status == 200
