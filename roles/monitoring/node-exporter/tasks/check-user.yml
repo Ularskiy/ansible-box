@@ -1,0 +1,21 @@
+- name: Проверить, существует ли пользователь {{ node_exporter_user }}
+  getent:
+    database: passwd
+    key: "{{ node_exporter_user }}"
+  register: user_check
+
+- name: Ошибка, если пользователь {{ node_exporter_user }} не существует
+  fail:
+    msg: "Пользователь {{ node_exporter_user }} не найден!"
+  when: user_check.ansible_facts.getent_passwd[node_exporter_user] is not defined
+
+- name: Проверить, существует ли группа {{ node_exporter_group }}
+  getent:
+    database: group
+    key: "{{ node_exporter_group }}"
+  register: group_check
+
+- name: Ошибка, если группа {{ node_exporter_group }} не существует
+  fail:
+    msg: "Группа {{ node_exporter_group }} не найдена!"
+  when: group_check.ansible_facts.getent_group[node_exporter_group] is not defined

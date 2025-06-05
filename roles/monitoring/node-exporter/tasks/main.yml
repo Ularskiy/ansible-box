@@ -1,3 +1,7 @@
+- name: Проверка наличия учётных записей
+  include_tasks: check-user.yml
+  when: node_exporter_state == "present"
+
 - name: Проверка удаления Node Exporter
   include_tasks: remove.yml
   when: node_exporter_state == "absent"
