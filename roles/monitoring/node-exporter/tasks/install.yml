@@ -1,0 +1,87 @@
+- name: "Проверка: нужно ли выполнить обновление"
+  set_fact:
+    node_exporter_needs_update: "{{ update_node_exporter | default(false) }}"
+
+- name: "Принудительное обновление версии при флаге update_node_exporter"
+  set_fact:
+    node_exporter_version: "{{ update_node_exporter_version }}"
+  when: update_node_exporter and (update_node_exporter_version is defined)
+
+- name: "Скачивание бинарника с веб-сервера"
+  get_url:
+    url: "{{ node_exporter_local_base_url }}/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: "{{ node_exporter_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+  register: download_result
+  when: node_exporter_needs_update
+  ignore_errors: true
+
+- name: "Копирование бинарника с контроллера (если web недоступен)"
+  copy:
+    src: "{{ node_exporter_controller_binary }}"
+    dest: "{{ node_exporter_binary_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+  when:
+    - node_exporter_needs_update
+    - download_result is failed
+    - node_exporter_use_fallback_copy
+
+- name: "Ошибка: не удалось получить бинарник"
+  fail:
+    msg: "Ошибка: не удалось получить node_exporter ни по HTTP, ни с контроллера."
+  when:
+    - node_exporter_needs_update
+    - download_result is failed
+    - not node_exporter_use_fallback_copy
+
+- name: "Проверка: бинарник node_exporter запускается и выводит версию"
+  command: "{{ node_exporter_binary_path }} --version"
+  register: check_node_exporter_version
+  failed_when: check_node_exporter_version.rc != 0
+  changed_when: false
+  when: node_exporter_needs_update
+
+- name: "Временный запуск node_exporter для проверки HTTP метрик"
+  shell: "{{ node_exporter_binary_path }} --web.listen-address=127.0.0.1:{{ node_exporter_port }} & echo $! > /tmp/node_exporter_check.pid"
+  async: 5
+  poll: 0
+  when: node_exporter_needs_update
+
+- name: "Ожидание запуска node_exporter"
+  wait_for:
+    host: "127.0.0.1"
+    port: "{{ node_exporter_port }}"
+    timeout: 5
+  when: node_exporter_needs_update
+
+- name: "Проверка метрик node_exporter"
+  uri:
+    url: "http://127.0.0.1:{{ node_exporter_port }}/metrics"
+    method: GET
+    return_content: true
+    status_code: 200
+  register: metrics_response
+  failed_when: "'node_exporter_build_info' not in metrics_response.content"
+  when: node_exporter_needs_update
+
+- name: "Остановка временного node_exporter после проверки"
+  shell: "kill -9 $(cat /tmp/node_exporter_check.pid) || true"
+  ignore_errors: true
+  when: node_exporter_needs_update
+
+- name: "Развёртывание systemd unit-файла"
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: '0644'
+  notify: Перезапустить node_exporter
+
+- name: "Запуск и включение node_exporter"
+  systemd:
+    name: node_exporter
+    enabled: yes
+    state: started

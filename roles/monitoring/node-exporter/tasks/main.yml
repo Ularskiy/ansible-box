@@ -1,0 +1,15 @@
+- name: "Проверка: существует ли пользователь node_exporter"
+  getent:
+    database: passwd
+    key: "{{ node_exporter_user }}"
+  register: user_check
+  failed_when: user_check is failed
+  tags: always
+
+- name: "Установка node_exporter"
+  include_tasks: install.yml
+  when: node_exporter_state in ["present", "latest"]
+
+- name: "Удаление node_exporter"
+  include_tasks: remove.yml
+  when: node_exporter_state == "absent"
