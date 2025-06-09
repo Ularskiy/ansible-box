@@ -1,0 +1,14 @@
+users:
+  - name: node_exporter
+    uid: 1002
+    shell: /bin/bash
+    sudo: none
+    groups: ['sudo'] 
+    remove_groups: [''] 
+    manage_existing: false
+    state: present
+    system: false
+
+users_dry_run: false
+default_shell: /bin/bash
+
