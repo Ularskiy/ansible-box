@@ -14,7 +14,7 @@
     - name: Установить флаг успешности
       set_fact:
         repo_check_successful: true
-      when: apt_result.rc == 0 and (apt_result.stderr is not defined or apt_result.stderr | length == 0)
+      when: apt_result.rc == 0
 
 - name: Проверить YUM/DNF (dnf makecache)
   when: ansible_os_family == "RedHat"
@@ -28,7 +28,7 @@
     - name: Установить флаг успешности
       set_fact:
         repo_check_successful: true
-      when: yum_result.rc == 0 and (yum_result.stderr is not defined or yum_result.stderr | length == 0)
+      when: yum_result.rc == 0
 
 - name: Вывести статус проверки репозиториев
   debug:

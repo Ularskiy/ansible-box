@@ -1,25 +1,44 @@
-- name: Управление дисками (сценарий расширения LVM)
-  hosts: all # Применяем ко всем хостам в инвентаре
+- name: Полная настройка серверов (Репозитории и Диски)
+  hosts: all
   become: true
   
-  # Здесь мы описываем, ЧТО мы хотим получить в итоге
+  pre_tasks:
+    - name: Установить утилиты для работы с ФС (LVM, XFS)
+      ansible.builtin.package:
+        name:
+          - lvm2
+          - xfsprogs
+        state: present
+
   vars:
-    disks:
-      - # --- НАША ИНСТРУКЦИЯ ДЛЯ РОЛИ ---
-        operation_type: extend      # Явно указываем, что будем РАСШИРЯТЬ существующую структуру
+    disk_configs_by_host:
+      '10.96.34.145':
+        - operation_type: extend
+          disk_device: /dev/sdb
+          vg_to_extend: debian-vg
+          lvs_to_modify:
+            - name: log_lv
+              new_size: 50G
+              filesystem: /var/log
+              fs_type: ext4
 
-        disk_device: /dev/sdb     # Указываем НОВЫЙ ДИСК, который мы будем использовать для расширения
-        vg_to_extend: debian-vg   # Говорим, какую СУЩЕСТВУЮЩУЮ группу томов нужно усилить
+      '10.96.34.146':
+        - operation_type: extend
+          disk_device: /dev/sdb
+          vg_to_extend: debian-vg
+          lvs_to_modify:
+            - name: log_lv
+              new_size: 20G
+              filesystem: /var/log
+              fs_type: ext4
+            - name: data_lv
+              new_size: 70G
+              filesystem: /var/data
+              fs_type: xfs
 
-        lvs_to_modify:
-          # В этом сценарии мы не меняем существующий /root, а только создаем новый том.
-          # Если бы нужно было расширить и /root, мы бы добавили его сюда же.
-
-          # Описываем новый том, который хотим СОЗДАТЬ в расширенной группе
-          - name: log_lv          # Придумали имя для нового тома под логи
-            new_size: 50G         # Выделим 50G из пространства нового диска
-            filesystem: /var/log  # Указываем точку монтирования
-            fs_type: ext4         # Указываем тип файловой системы для форматирования
+    disks: "{{ disk_configs_by_host[inventory_hostname] }}"
 
   roles:
-    - role: infra/manage-disks # Подключаем нашу роль
+    - role: infra/fix-repository
+      fix_repository_exit_on_success: false
+    - role: infra/manage-disks

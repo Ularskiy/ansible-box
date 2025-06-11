@@ -78,6 +78,9 @@ fix_repository_proxy_main_mirrors_oracle:
 # Включение логики установки внешних репозиториев
 fix_repository_enable_external_repos: false
 
+# Переключатель для использования в мулти-роли, true - если в соло, false - если несколько ролей
+fix_repository_exit_on_success: false
+
 # Внешние репозитории (например, Zabbix, Docker)
 fix_repository_external_repos:
   - name: zabbix-deb

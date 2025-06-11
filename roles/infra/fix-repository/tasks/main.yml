@@ -9,7 +9,7 @@
 
 - name: Завершить, если всё уже работает
   meta: end_play
-  when: repo_check_successful | default(false)
+  when: repo_check_successful | default(false) and fix_repository_exit_on_success
 
 - name: Создать бэкапы текущих конфигураций репозиториев
   include_tasks: backup_existing_repos.yml
