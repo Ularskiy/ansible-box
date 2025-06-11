@@ -1,11 +1,13 @@
-- name: Завершить, если тип работы — не Nexus
-  ansible.builtin.meta: end_task
+- name: Пропустить, если тип работы — не Nexus
+  ansible.builtin.debug:
+    msg: "Пропускаем настройку Nexus: тип работы не 'nexus'"
   when: fix_repository_type != "nexus"
 
 - name: Получить версию дистрибутива
   ansible.builtin.set_fact:
     fix_repository_distro: "{{ ansible_distribution }}"
     fix_repository_distro_major: "{{ ansible_distribution_major_version }}"
+  when: fix_repository_type == "nexus"
 
 - name: Получить список файлов из мапы
   ansible.builtin.set_fact:
@@ -17,6 +19,7 @@
               fix_repository_nexus_repo_map[fix_repository_distro][fix_repository_distro_major],
               [])
       }}
+  when: fix_repository_type == "nexus"
 
 - name: Завершить с ошибкой, если не удалось найти файлы
   ansible.builtin.fail:
@@ -24,6 +27,7 @@
       Не удалось определить репозитории для {{ fix_repository_distro }} {{ fix_repository_distro_major }}.
       Проверьте fix_repository_nexus_repo_map или отключите роль.
   when:
+    - fix_repository_type == "nexus"
     - fix_repository_nexus_repo_files | length == 0
     - not fix_repository_nexus_enable_fallback
 
@@ -37,5 +41,7 @@
       }}
     mode: '0644'
   loop: "{{ fix_repository_nexus_repo_files }}"
-  when: fix_repository_nexus_repo_files | length > 0
+  when:
+    - fix_repository_type == "nexus"
+    - fix_repository_nexus_repo_files | length > 0
 

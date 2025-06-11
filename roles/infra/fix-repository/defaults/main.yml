@@ -1,4 +1,3 @@
----
 # Включение роли
 fix_repository_enabled: true
 
@@ -11,34 +10,34 @@ fix_repository_skip_check_existing: false
 # Удалять ли ACL-запись из Squid после настройки (для proxy)
 fix_repository_delete_proxy_acl_entry: false
 
-# Каталог для бэкапов репозиторных файлов
-fix_repository_backup_dir: "/etc/ansible_repo_backups"
-
 # URL до веб-шары Nexus или любого другого локального хранилища
 fix_repository_nexus_base_url: "http://192.168.195.195/repos"
 
 # Гибкая мапа: ОС → версия → список файлов репозиториев
 fix_repository_nexus_repo_map:
   Debian:
+    "10":
+      - debian-11-buster.list
     "11":
-      - debian-11.list
+      - debian-11-bullseye.list
     "12":
-      - debian-12.list
+      - debian-12-bookworm.list
   Ubuntu:
+    "18":
+      - ubuntu-18-bionic.list
     "20":
       - ubuntu-20-focal.list
     "22":
       - ubuntu-22-jammy.list
+    "24":
+      - ubuntu-22-noble.list
   RedHat:
-    "8":
-      - rhel-8-base.repo
-      - rhel-8-epel.repo
     "9":
       - rhel-9-base.repo
-      - rhel-9-epel.repo
+      - rhel-9-appstream.repo
+      - epel.repo
   OracleLinux:
     "9":
-      - oracle-9-base.repo
 
 # Разрешить fallback: если map не содержит ключа — попробовать по ansible_os_family
 fix_repository_nexus_enable_fallback: true
@@ -75,6 +74,9 @@ fix_repository_proxy_main_mirrors_debian:
 fix_repository_proxy_main_mirrors_oracle:
   - "http://yum.oracle.com/repo/OracleLinux/OL9/latest/x86_64/"
   - "http://yum.oracle.com/repo/OracleLinux/OL8/latest/x86_64/"
+
+# Включение логики установки внешних репозиториев
+fix_repository_enable_external_repos: false
 
 # Внешние репозитории (например, Zabbix, Docker)
 fix_repository_external_repos:

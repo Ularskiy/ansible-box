@@ -1,0 +1,32 @@
+- name: Повторная проверка APT
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Выполнить apt update повторно
+      command: apt update
+      register: final_apt_result
+      changed_when: false
+      failed_when: false
+
+    - name: Установить флаг финального успеха
+      set_fact:
+        final_check_successful: true
+      when: final_apt_result.rc == 0 and (final_apt_result.stderr is not defined or final_apt_result.stderr | length == 0)
+
+- name: Повторная проверка YUM
+  when: ansible_os_family == "RedHat"
+  block:
+    - name: Выполнить dnf makecache повторно
+      command: dnf makecache
+      register: final_yum_result
+      changed_when: false
+      failed_when: false
+
+    - name: Установить флаг финального успеха
+      set_fact:
+        final_check_successful: true
+      when: final_yum_result.rc == 0 and (final_yum_result.stderr is not defined or final_yum_result.stderr | length == 0)
+
+- name: Проверка финального статуса
+  fail:
+    msg: "Финальная проверка репозиториев завершилась неудачно"
+  when: not final_check_successful | default(false)

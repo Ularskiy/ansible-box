@@ -1,39 +1,32 @@
-# Завершить выполнение роли, если она отключена
-- name: Проверить, активна ли роль fix-repository
-  ansible.builtin.fail:
-    msg: "Роль fix-repository отключена (fix_repository_enabled: false)"
+- name: Проверить, активна ли роль
+  fail:
+    msg: "Роль fix-repository отключена"
   when: not fix_repository_enabled
 
-# Проверка текущих репозиториев (если не пропущена)
-- name: Проверить доступность текущих репозиториев
+- name: Проверить репозитории (если не пропущено)
   include_tasks: check_existing_repos.yml
   when: not fix_repository_skip_check_existing
 
-# Если всё работает — прерываем дальнейшее выполнение
-- name: Прервать выполнение роли, если текущие репозитории работают
+- name: Завершить, если всё уже работает
   meta: end_play
   when: repo_check_successful | default(false)
 
-# Бэкап существующих репозиториев
 - name: Создать бэкапы текущих конфигураций репозиториев
   include_tasks: backup_existing_repos.yml
 
-# Добавление внешних репозиториев (например, Zabbix, Docker и пр.)
-- name: Установить внешние репозитории (если указаны)
+- name: Установить внешние репозитории (если явно разрешено)
   include_tasks: add_external_repos.yml
-  when: fix_repository_external_repos | length > 0
+  when:
+    - fix_repository_enable_external_repos | default(false)
+    - fix_repository_external_repos | length > 0
 
-# Настройка через Nexus
-- name: Настроить репозитории через локальный Nexus
+- name: Настроить Nexus
   include_tasks: configure_nexus_repos.yml
   when: fix_repository_type == "nexus"
 
-# Настройка через прокси Squid
-- name: Настроить репозитории через прокси Squid
+- name: Настроить прокси
   include_tasks: configure_proxy_repos.yml
   when: fix_repository_type == "proxy"
 
-# Финальная проверка
-- name: Выполнить финальную проверку работоспособности репозиториев
+- name: Финальная проверка состояния репозиториев
   include_tasks: final_repo_check.yml
-

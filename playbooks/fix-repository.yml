@@ -1,0 +1,10 @@
+- name: Фикс репозитория (fix-repository)
+  hosts: test_hosts
+  become: true
+
+  vars_files:
+    - ../inventory/testing/fix-repository/fix_playbook.yml
+
+  roles:
+    - infra/fix-repository
+

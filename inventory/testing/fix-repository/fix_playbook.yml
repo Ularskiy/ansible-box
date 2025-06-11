@@ -1,0 +1,21 @@
+- name: Настройка репозиториев на Ubuntu через локальный Nexus
+  hosts: test_hosts
+  become: true
+
+  vars:
+    fix_repository_enabled: true
+    fix_repository_type: "nexus"
+    fix_repository_skip_check_existing: false
+    fix_repository_nexus_enable_fallback: true
+
+    fix_repository_nexus_base_url: "http://192.168.195.195/repos"
+
+    fix_repository_nexus_repo_map:
+      Ubuntu:
+        "20":
+          - ubuntu-20-focal.list
+        "22":
+          - ubuntu-22-jammy.list
+
+  roles:
+    - infra/fix-repository

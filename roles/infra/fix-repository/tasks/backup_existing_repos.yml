@@ -1,57 +1,56 @@
-- name: Получить текущую дату для имени бэкапа
-  ansible.builtin.command: date +%Y%m%d%H%M%S
-  register: current_date
-  changed_when: false
+- name: Получить текущую дату и время (формат ГГГГ-ММ-ДД_ЧЧ-ММ-СС)
+  ansible.builtin.set_fact:
+    backup_timestamp: "{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}-{{ ansible_date_time.second }}"
 
-- name: Создать директорию для бэкапов, если не существует
+- name: Определить базовую директорию репозиториев для текущей ОС
+  ansible.builtin.set_fact:
+    repo_base_dir: "{{ '/etc/apt' if ansible_os_family == 'Debian' else '/etc/yum.repos.d' }}"
+
+- name: Сформировать путь к директории для истории бэкапов
+  ansible.builtin.set_fact:
+    backup_target_dir: "{{ repo_base_dir }}/old-repository-backups/backup-{{ backup_timestamp }}"
+
+- name: Создать директорию для бэкапа внутри папки репозиториев
   ansible.builtin.file:
-    path: "{{ fix_repository_backup_dir }}"
+    path: "{{ backup_target_dir }}"
     state: directory
     mode: '0755'
 
-# Debian-based
-- name: Найти существующие APT репозитории (.list)
+# --- Бэкап для Debian-based систем ---
+- name: (DEBIAN) Найти все .list файлы в sources.list.d
+  when: ansible_os_family == "Debian"
   ansible.builtin.find:
-    paths: "/etc/apt/sources.list.d"
+    paths: "/etc/apt/sources.list.d/"
     patterns: "*.list"
-    file_type: file
-  register: apt_list_files
+  register: apt_files_to_backup
+
+- name: (DEBIAN) Переместить .list файлы в папку бэкапа
+  when: ansible_os_family == "Debian" and apt_files_to_backup.matched > 0
+  ansible.builtin.command: "mv -t {{ backup_target_dir }}/ {{ apt_files_to_backup.files | map(attribute='path') | join(' ') }}"
+  changed_when: true 
+ 
+- name: (DEBIAN) Проверить наличие основного файла sources.list
   when: ansible_os_family == "Debian"
+  ansible.builtin.stat:
+    path: "/etc/apt/sources.list"
+  register: main_sources_list_stat
 
-- name: Скопировать APT .list файлы в бэкап
-  ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ fix_repository_backup_dir }}/{{ item.path | basename }}.{{ current_date.stdout }}"
-    remote_src: true
-  loop: "{{ apt_list_files.files }}"
-  when:
-    - ansible_os_family == "Debian"
-    - apt_list_files.files | length > 0
+- name: (DEBIAN) Переместить основной sources.list в папку бэкапа
+  when: ansible_os_family == "Debian" and main_sources_list_stat.stat.exists
+  ansible.builtin.command: "mv /etc/apt/sources.list {{ backup_target_dir }}/"
+  changed_when: true
 
-- name: Скопировать основной sources.list
-  ansible.builtin.copy:
-    src: "/etc/apt/sources.list"
-    dest: "{{ fix_repository_backup_dir }}/sources.list.{{ current_date.stdout }}"
-    remote_src: true
-  when: ansible_os_family == "Debian"
-  ignore_errors: true
-
-# RedHat-based
-- name: Найти существующие YUM репозитории (.repo)
-  ansible.builtin.find:
-    paths: "/etc/yum.repos.d"
-    patterns: "*.repo"
-    file_type: file
-  register: yum_repo_files
+# --- Бэкап для RedHat-based систем ---
+- name: (REDHAT) Найти все .repo файлы
   when: ansible_os_family == "RedHat"
+  ansible.builtin.find:
+    paths: "/etc/yum.repos.d/"
+    patterns: "*.repo"
+  register: yum_files_to_backup
 
-- name: Скопировать YUM .repo файлы в бэкап
-  ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ fix_repository_backup_dir }}/{{ item.path | basename }}.{{ current_date.stdout }}"
-    remote_src: true
-  loop: "{{ yum_repo_files.files }}"
-  when:
-    - ansible_os_family == "RedHat"
-    - yum_repo_files.files | length > 0
-
+- name: (REDHAT) Переместить .repo файлы в папку бэкапа
+  when: ansible_os_family == "RedHat" and yum_files_to_backup.matched > 0
+  ansible.builtin.command: "mv -t {{ backup_target_dir }}/ {{ yum_files_to_backup.files | map(attribute='path') | join(' ') }}"
+  args:
+    warn: false
+  changed_when: true

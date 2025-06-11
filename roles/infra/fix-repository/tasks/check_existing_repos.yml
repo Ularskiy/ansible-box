@@ -1,45 +1,35 @@
-- name: Установить флаг начальной проверки
-  ansible.builtin.set_fact:
-    repo_check_successful: false
-    repo_check_message: "Репозитории ещё не проверялись."
+- name: Установить флаг начала проверки
+  set_fact:
+    repo_check_started: true
 
-# Для Debian-based систем
 - name: Проверить APT (apt update)
-  ansible.builtin.apt:
-    update_cache: yes
-    cache_valid_time: 3600
-  register: apt_update_result
-  ignore_errors: true
   when: ansible_os_family == "Debian"
+  block:
+    - name: Выполнить apt update
+      command: apt update
+      register: apt_result
+      changed_when: false
+      failed_when: false
 
-- name: Установить статус репозиториев для Debian
-  ansible.builtin.set_fact:
-    repo_check_successful: "{{ apt_update_result is defined and apt_update_result.failed is not defined }}"
-    repo_check_message: "APT update выполнен успешно."
-  when:
-    - ansible_os_family == "Debian"
-    - apt_update_result is defined
+    - name: Установить флаг успешности
+      set_fact:
+        repo_check_successful: true
+      when: apt_result.rc == 0 and (apt_result.stderr is not defined or apt_result.stderr | length == 0)
 
-# Для RHEL/Oracle-based систем
-- name: Очистить метаданные YUM
-  ansible.builtin.command: yum clean all
-  ignore_errors: true
+- name: Проверить YUM/DNF (dnf makecache)
   when: ansible_os_family == "RedHat"
+  block:
+    - name: Выполнить dnf makecache
+      command: dnf makecache
+      register: yum_result
+      changed_when: false
+      failed_when: false
 
-- name: Выполнить makecache для YUM/DNF
-  ansible.builtin.command: yum makecache
-  register: yum_makecache_result
-  ignore_errors: true
-  when: ansible_os_family == "RedHat"
-
-- name: Установить статус репозиториев для RedHat
-  ansible.builtin.set_fact:
-    repo_check_successful: "{{ yum_makecache_result is defined and yum_makecache_result.failed is not defined }}"
-    repo_check_message: "YUM makecache выполнен успешно."
-  when:
-    - ansible_os_family == "RedHat"
-    - yum_makecache_result is defined
+    - name: Установить флаг успешности
+      set_fact:
+        repo_check_successful: true
+      when: yum_result.rc == 0 and (yum_result.stderr is not defined or yum_result.stderr | length == 0)
 
 - name: Вывести статус проверки репозиториев
-  ansible.builtin.debug:
-    msg: "{{ repo_check_message }} (Успешно: {{ repo_check_successful }})"
+  debug:
+    msg: "{{ ansible_pkg_mgr | upper }} update выполнен успешно. (Успешно: {{ repo_check_successful | default(false) }})"
