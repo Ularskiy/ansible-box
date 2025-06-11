@@ -1,0 +1,12 @@
+- name: "Сканирование информации о дисках (после)"
+  shell: |
+    echo "--- LSBLK ---"
+    lsblk
+    echo "--- DF -h ---"
+    df -h
+  register: disk_scan_after
+  changed_when: false
+
+- name: "Вывод финального состояния"
+  debug:
+    msg: "\n{{ disk_scan_after.stdout }}"

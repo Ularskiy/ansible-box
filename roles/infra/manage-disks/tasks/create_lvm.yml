@@ -1,0 +1,17 @@
+- name: "Создание Physical Volume"
+  command: pvcreate {{ item.device }}
+  ignore_errors: true
+
+- name: "Создание Volume Group"
+  command: vgcreate {{ item.vg_name }} {{ item.device }}
+  when: item.vg_name is defined
+  ignore_errors: true
+
+- name: "Создание Logical Volume"
+  command: lvcreate -L {{ item.lv_size }} -n {{ item.lv_name }} {{ item.vg_name }}
+  when: item.lv_name is defined and item.vg_name is defined
+  register: lv_result
+
+- name: "Определение пути до LV"
+  set_fact:
+    item_device: "/dev/{{ item.vg_name }}/{{ item.lv_name }}"

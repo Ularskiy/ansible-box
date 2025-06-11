@@ -1,0 +1,57 @@
+- name: Получить текущую дату для имени бэкапа
+  ansible.builtin.command: date +%Y%m%d%H%M%S
+  register: current_date
+  changed_when: false
+
+- name: Создать директорию для бэкапов, если не существует
+  ansible.builtin.file:
+    path: "{{ fix_repository_backup_dir }}"
+    state: directory
+    mode: '0755'
+
+# Debian-based
+- name: Найти существующие APT репозитории (.list)
+  ansible.builtin.find:
+    paths: "/etc/apt/sources.list.d"
+    patterns: "*.list"
+    file_type: file
+  register: apt_list_files
+  when: ansible_os_family == "Debian"
+
+- name: Скопировать APT .list файлы в бэкап
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ fix_repository_backup_dir }}/{{ item.path | basename }}.{{ current_date.stdout }}"
+    remote_src: true
+  loop: "{{ apt_list_files.files }}"
+  when:
+    - ansible_os_family == "Debian"
+    - apt_list_files.files | length > 0
+
+- name: Скопировать основной sources.list
+  ansible.builtin.copy:
+    src: "/etc/apt/sources.list"
+    dest: "{{ fix_repository_backup_dir }}/sources.list.{{ current_date.stdout }}"
+    remote_src: true
+  when: ansible_os_family == "Debian"
+  ignore_errors: true
+
+# RedHat-based
+- name: Найти существующие YUM репозитории (.repo)
+  ansible.builtin.find:
+    paths: "/etc/yum.repos.d"
+    patterns: "*.repo"
+    file_type: file
+  register: yum_repo_files
+  when: ansible_os_family == "RedHat"
+
+- name: Скопировать YUM .repo файлы в бэкап
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ fix_repository_backup_dir }}/{{ item.path | basename }}.{{ current_date.stdout }}"
+    remote_src: true
+  loop: "{{ yum_repo_files.files }}"
+  when:
+    - ansible_os_family == "RedHat"
+    - yum_repo_files.files | length > 0
+

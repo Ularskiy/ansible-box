@@ -1,0 +1,107 @@
+---
+# Включение роли
+fix_repository_enabled: true
+
+# Режим работы: nexus | proxy
+fix_repository_type: "nexus"
+
+# Пропустить проверку текущих репозиториев
+fix_repository_skip_check_existing: false
+
+# Удалять ли ACL-запись из Squid после настройки (для proxy)
+fix_repository_delete_proxy_acl_entry: false
+
+# Каталог для бэкапов репозиторных файлов
+fix_repository_backup_dir: "/etc/ansible_repo_backups"
+
+# URL до веб-шары Nexus или любого другого локального хранилища
+fix_repository_nexus_base_url: "http://192.168.195.195/repos"
+
+# Гибкая мапа: ОС → версия → список файлов репозиториев
+fix_repository_nexus_repo_map:
+  Debian:
+    "11":
+      - debian-11.list
+    "12":
+      - debian-12.list
+  Ubuntu:
+    "20":
+      - ubuntu-20-focal.list
+    "22":
+      - ubuntu-22-jammy.list
+  RedHat:
+    "8":
+      - rhel-8-base.repo
+      - rhel-8-epel.repo
+    "9":
+      - rhel-9-base.repo
+      - rhel-9-epel.repo
+  OracleLinux:
+    "9":
+      - oracle-9-base.repo
+
+# Разрешить fallback: если map не содержит ключа — попробовать по ansible_os_family
+fix_repository_nexus_enable_fallback: true
+
+# Использовать принудительно единый файл (если нужен)
+fix_repository_use_target_repo_file: false
+fix_repository_target_repo_file: ""
+
+# Параметры прокси
+fix_repository_proxy_host: "192.168.188.103"
+fix_repository_proxy_port: "3128"
+fix_repository_proxy_user_profile: "ansible"
+fix_repository_squid_service_name: "squid"
+fix_repository_squid_conf_path: "/etc/squid/conf.d/ansible-squid.conf"
+fix_repository_squid_conf_include_directive: "include /etc/squid/conf.d/ansible-squid.conf"
+fix_repository_check_include_directive_shell: "grep -q '{{ fix_repository_squid_conf_include_directive }}' /etc/squid/squid.conf"
+
+# Маркер для блока в .bashrc
+fix_repository_bashrc_proxy_block_marker: "# {mark} ANSIBLE MANAGED BLOCK - PROXY ENV"
+
+# Прокси для apt/yum конфигов
+fix_repository_enable_apt_proxy_conf: true
+fix_repository_enable_yum_proxy_conf: true
+
+# Основные зеркала (для режима proxy)
+fix_repository_proxy_main_mirrors_ubuntu:
+  - "http://archive.ubuntu.com/ubuntu/"
+  - "http://security.ubuntu.com/ubuntu/"
+
+fix_repository_proxy_main_mirrors_debian:
+  - "http://deb.debian.org/debian/"
+  - "http://deb.debian.org/debian-security/"
+
+fix_repository_proxy_main_mirrors_oracle:
+  - "http://yum.oracle.com/repo/OracleLinux/OL9/latest/x86_64/"
+  - "http://yum.oracle.com/repo/OracleLinux/OL8/latest/x86_64/"
+
+# Внешние репозитории (например, Zabbix, Docker)
+fix_repository_external_repos:
+  - name: zabbix-deb
+    enabled: true
+    for_os: "Debian"
+    list_url: "https://repo.zabbix.com/zabbix/6.0/debian/pool/main/z/zabbix-release/zabbix-release_6.0-4+debian11_all.deb"
+
+  - name: zabbix-rpm
+    enabled: true
+    for_os: "RedHat"
+    repo_url: "https://repo.zabbix.com/zabbix/6.0/rhel/9/x86_64/zabbix-release-6.0-4.el9.noarch.rpm"
+
+  - name: fake-monitoring-repo
+    enabled: false
+    for_os: "OracleLinux"
+    repo_url: "http://my-fake.internal/repo/monitoring-agent.rpm"
+
+  - name: docker-ce-repo
+    enabled: true
+    for_os: "Debian"
+    list_url: "https://download.docker.com/linux/debian/gpg"
+
+# Inline-шаблоны для proxy
+fix_repository_template_apt_proxy: |
+  Acquire::http::Proxy "http://{{ fix_repository_proxy_host }}:{{ fix_repository_proxy_port }}/";
+  Acquire::https::Proxy "http://{{ fix_repository_proxy_host }}:{{ fix_repository_proxy_port }}/";
+
+fix_repository_template_yum_proxy: |
+  proxy=http://{{ fix_repository_proxy_host }}:{{ fix_repository_proxy_port }}

@@ -1,0 +1,16 @@
+- name: "Сканирование информации о дисках (до)"
+  shell: |
+    echo "--- LSBLK ---"
+    lsblk
+    echo "--- PVS ---"
+    pvs
+    echo "--- VGS ---"
+    vgs
+    echo "--- LVS ---"
+    lvs
+  register: disk_scan_before
+  changed_when: false
+
+- name: "Вывод информации о текущих устройствах"
+  debug:
+    msg: "\n{{ disk_scan_before.stdout }}"

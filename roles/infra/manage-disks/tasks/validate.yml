@@ -1,0 +1,12 @@
+- name: "Проверка критических точек монтирования"
+  ansible.builtin.assert:
+    that:
+      - item.mount_point not in ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
+    fail_msg: "mount_point {{ item.mount_point }} запрещен"
+
+- name: "Проверка использования устройства"
+  shell: "mount | grep -q {{ item.device }}"
+  register: device_check
+  failed_when: device_check.rc == 0
+  changed_when: false
+  ignore_errors: false

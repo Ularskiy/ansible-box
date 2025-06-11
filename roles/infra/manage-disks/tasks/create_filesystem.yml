@@ -1,0 +1,4 @@
+- name: "Создание файловой системы {{ item.fs_type }}"
+  command: "mkfs.{{ item.fs_type }} -F {{ item_device | default(item.device) }}"
+  args:
+    warn: false

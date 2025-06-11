@@ -1,0 +1,11 @@
+[ol{{ ansible_distribution_major_version }}_base]
+name=Oracle Linux $releasever - Base
+baseurl={{ fix_repository_proxy_main_mirrors_oracle[0] }}
+gpgcheck=0
+enabled=1
+
+[ol{{ ansible_distribution_major_version }}_updates]
+name=Oracle Linux $releasever - Updates
+baseurl={{ fix_repository_proxy_main_mirrors_oracle[1] }}
+gpgcheck=0
+enabled=1

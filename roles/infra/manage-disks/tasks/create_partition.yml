@@ -1,0 +1,8 @@
+- name: "Разметить диск (MBR)"
+  parted:
+    device: "{{ item.device }}"
+    number: 1
+    state: present
+    part_type: primary
+    fs_type: "{{ item.fs_type }}"
+    resize: yes

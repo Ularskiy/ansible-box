@@ -1,0 +1,5 @@
+- name: restart squid
+  ansible.builtin.service:
+    name: "{{ fix_repository_squid_service_name }}"
+    state: restarted
+  become: true

@@ -1,0 +1,14 @@
+- name: "Получение UUID устройства"
+  command: "blkid -s UUID -o value {{ item_device | default(item.device) }}"
+  register: blkid_result
+  changed_when: false
+
+- name: "Добавление в /etc/fstab"
+  mount:
+    path: "{{ item.mount_point }}"
+    src: "UUID={{ blkid_result.stdout }}"
+    fstype: "{{ item.fs_type }}"
+    opts: defaults
+    state: mounted
+    dump: 0
+    passno: 2
