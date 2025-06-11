@@ -1,0 +1,24 @@
+- name: "СКАНИРОВАНИЕ | Сбор полной информации о дисках"
+  ansible.builtin.shell: |
+    echo "--- LSBLK (Структура блочных устройств) ---"
+    lsblk
+    echo ""
+    echo "--- PVS (LVM Physical Volumes) ---"
+    pvs
+    echo ""
+    echo "--- VGS (LVM Volume Groups) ---"
+    vgs
+    echo ""
+    echo "--- LVS (LVM Logical Volumes) ---"
+    lvs
+    echo ""
+    echo "--- DF -h (Использование дискового пространства) ---"
+    df -h
+  register: scan_result
+  changed_when: false
+  args:
+    executable: /bin/bash
+
+- name: "СКАНИРОВАНИЕ | Вывод отчета о текущем состоянии"
+  ansible.builtin.debug:
+    msg: "\n{{ scan_result.stdout }}"

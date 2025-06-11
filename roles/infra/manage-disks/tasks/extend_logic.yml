@@ -1,0 +1,65 @@
+---
+- name: Подключение файла с проверками
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Подключение файла сканирования "ДО"
+  ansible.builtin.include_tasks: scan_disks.yml
+
+- name: "РАСШИРЕНИЕ | 1. Создать новый раздел на весь доступный остаток диска"
+  become: true
+  community.general.parted:
+    device: "{{ item.disk_device }}"
+    number: 1 # На новом чистом диске это будет первый раздел
+    state: present
+    part_end: 100%
+    flags: [ lvm ]
+  register: new_partition_info
+
+- name: "РАСШИРЕНИЕ | 2a. Создать Physical Volume на новом разделе (pvcreate)"
+  become: true
+  ansible.builtin.shell: "yes | pvcreate -ff {{ item.disk_device }}1" # <-- Вот исправление
+  changed_when: true
+
+- name: "РАСШИРЕНИЕ | 2b. Расширить существующую Volume Group (vgextend)"
+  become: true
+  ansible.builtin.command: "vgextend {{ item.vg_to_extend }} {{ item.disk_device }}1"
+  changed_when: true
+
+- name: "РАСШИРЕНИЕ | 3. Изменить/создать Logical Volumes"
+  become: true
+  community.general.lvol:
+    vg: "{{ item.vg_to_extend }}"
+    lv: "{{ lv_item.name }}"
+    size: "{{ lv_item.new_size }}"
+    state: present
+  loop: "{{ item.lvs_to_modify }}"
+  loop_control:
+    loop_var: lv_item
+
+- name: "РАСШИРЕНИЕ | 4. Расширить/создать файловые системы"
+  become: true
+  community.general.filesystem:
+    dev: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ lv_item.fs_type | default(omit) }}"
+    resizefs: true
+  loop: "{{ item.lvs_to_modify }}"
+  loop_control:
+    loop_var: lv_item
+
+- name: "РАСШИРЕНИЕ | 5. Смонтировать новые тома и добавить в fstab"
+  become: true
+  ansible.builtin.mount:
+    path: "{{ lv_item.filesystem }}"
+    src: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ lv_item.fs_type }}"
+    state: mounted
+    opts: defaults
+    dump: 0
+    passno: 2
+  loop: "{{ item.lvs_to_modify }}"
+  loop_control:
+    loop_var: lv_item
+  when: lv_item.fs_type is defined
+
+- name: Подключение файла сканирования "ПОСЛЕ"
+  ansible.builtin.include_tasks: scan_disks.yml

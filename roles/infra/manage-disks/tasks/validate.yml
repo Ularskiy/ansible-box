@@ -1,12 +1,30 @@
-- name: "Проверка критических точек монтирования"
+- name: "CREATE | Проверка критических точек монтирования"
   ansible.builtin.assert:
     that:
       - item.mount_point not in ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
-    fail_msg: "mount_point {{ item.mount_point }} запрещен"
+    fail_msg: "Операция 'create': Точка монтирования {{ item.mount_point }} запрещена."
+  when: item.operation_type | default('create') == 'create'
 
-- name: "Проверка использования устройства"
-  shell: "mount | grep -q {{ item.device }}"
-  register: device_check
-  failed_when: device_check.rc == 0
+- name: "CREATE | Проверка, не используется ли уже устройство"
+  ansible.builtin.shell: "mount | grep -q {{ item.device }}"
+  register: device_check_create
+  failed_when: device_check_create.rc == 0
   changed_when: false
-  ignore_errors: false
+  when: item.operation_type | default('create') == 'create'
+
+- name: "EXTEND | Проверка критических точек монтирования"
+  ansible.builtin.assert:
+    that:
+      - lv_item.filesystem not in ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
+    fail_msg: "Операция 'extend': Точка монтирования {{ lv_item.filesystem }} запрещена."
+  loop: "{{ item.lvs_to_modify }}"
+  loop_control:
+    loop_var: lv_item
+  when: item.operation_type == 'extend'
+
+- name: "EXTEND | Проверка, не используется ли уже добавляемый диск"
+  ansible.builtin.shell: "mount | grep -q {{ item.disk_device }}"
+  register: device_check_extend
+  failed_when: device_check_extend.rc == 0
+  changed_when: false
+  when: item.operation_type == 'extend'

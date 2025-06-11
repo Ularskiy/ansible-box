@@ -1,0 +1,42 @@
+#  ANSIBLE_STDOUT_CALLBACK=yaml необходимо писать данную перед запуском плейбука
+- name: Аудит дисковой подсистемы (простой и надежный способ)
+  hosts: all 
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Собрать информацию о дисках системными командами
+      ansible.builtin.shell: |
+        echo "==============================================================="
+        echo "ОТЧЕТ ПО ХОСТУ: $(hostname)"
+        echo "==============================================================="
+        echo ""
+        echo "ПАМЯТЬ (RAM):"
+        free -h
+        echo ""
+        echo "ОБЩАЯ СТРУКТУРА БЛОЧНЫХ УСТРОЙСТВ (lsblk):"
+        lsblk
+        echo ""
+        echo "ДИСКИ, РАЗДЕЛЫ И ФАЙЛОВЫЕ СИСТЕМЫ (lsblk -f):"
+        lsblk -f
+        echo ""
+        echo "LVM - PHYSICAL VOLUMES (pvs):"
+        pvs
+        echo ""
+        echo "LVM - VOLUME GROUPS (vgs):"
+        vgs
+        echo ""
+        echo "LVM - LOGICAL VOLUMES (lvs):"
+        lvs
+        echo ""
+        echo "ИСПОЛЬЗОВАНИЕ ДИСКОВОГО ПРОСТРАНСТВА (df -h):"
+        df -h
+        echo "==============================================================="
+      args:
+        executable: /bin/bash
+      register: audit_report
+      changed_when: false
+
+    - name: Показать сводный отчет
+      ansible.builtin.debug:
+        msg: "{{ audit_report.stdout }}"
