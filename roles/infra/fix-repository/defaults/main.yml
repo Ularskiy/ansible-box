@@ -33,9 +33,12 @@ fix_repository_nexus_repo_map:
       - ubuntu-22-noble.list
   RedHat:
     "9":
-      - rhel-9-base.repo
-      - rhel-9-appstream.repo
-      - epel.repo
+      - name: rhel-9-base.repo
+        path: rhel/9
+      - name: rhel-9-appstream.repo
+        path: rhel/9
+      - name: epel.repo
+        path: rhel
   OracleLinux:
     "9":
 

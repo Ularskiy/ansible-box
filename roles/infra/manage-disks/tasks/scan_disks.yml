@@ -14,6 +14,9 @@
     echo ""
     echo "--- DF -h (Использование дискового пространства) ---"
     df -h
+    echo ""
+    echo "--- FSTAB (Конфигурация постоянного монтирования) ---"
+    cat /etc/fstab
   register: scan_result
   changed_when: false
   args:

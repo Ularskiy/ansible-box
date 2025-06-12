@@ -51,6 +51,4 @@
 - name: (REDHAT) Переместить .repo файлы в папку бэкапа
   when: ansible_os_family == "RedHat" and yum_files_to_backup.matched > 0
   ansible.builtin.command: "mv -t {{ backup_target_dir }}/ {{ yum_files_to_backup.files | map(attribute='path') | join(' ') }}"
-  args:
-    warn: false
-  changed_when: true
+  changed_when: true 

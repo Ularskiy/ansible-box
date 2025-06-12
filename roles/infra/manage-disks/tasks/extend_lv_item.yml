@@ -1,0 +1,38 @@
+- name: "ШАГ 3 | Умное определение типа ФС для '{{ lv_item.name }}'"
+  become: true
+  ansible.builtin.shell: "blkid -s TYPE -o value /dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+  register: blkid_check
+  failed_when: false
+  changed_when: false
+
+- name: "ШАГ 3 | Вычисление итогового типа ФС для '{{ lv_item.name }}'"
+  ansible.builtin.set_fact:
+    effective_fs_type: "{{ lv_item.fs_type | default(blkid_check.stdout) }}"
+
+- name: "ШАГ 3 | Изменение/создание Logical Volume '{{ lv_item.name }}'"
+  become: true
+  community.general.lvol:
+    vg: "{{ item.vg_to_extend }}"
+    lv: "{{ lv_item.name }}"
+    size: "{{ lv_item.new_size }}"
+    state: present
+
+- name: "ШАГ 4 | Расширение/создание файловой системы для '{{ lv_item.name }}'"
+  become: true
+  community.general.filesystem:
+    dev: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ effective_fs_type }}"
+    resizefs: true
+  when: effective_fs_type != ""
+
+- name: "ШАГ 5 | Монтирование нового тома '{{ lv_item.name }}'"
+  become: true
+  ansible.builtin.mount:
+    path: "{{ lv_item.filesystem }}"
+    src: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ effective_fs_type }}"
+    state: mounted
+    opts: defaults
+    dump: 0
+    passno: 2
+  when: lv_item.fs_type is defined # Монтируем, только если это новый том

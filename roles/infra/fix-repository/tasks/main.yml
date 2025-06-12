@@ -28,5 +28,3 @@
   include_tasks: configure_proxy_repos.yml
   when: fix_repository_type == "proxy"
 
-- name: Финальная проверка состояния репозиториев
-  include_tasks: final_repo_check.yml

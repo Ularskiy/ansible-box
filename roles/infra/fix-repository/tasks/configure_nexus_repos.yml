@@ -33,15 +33,16 @@
 
 - name: Скачать файлы репозиториев из Nexus
   ansible.builtin.get_url:
-    url: "{{ fix_repository_nexus_base_url }}/{{ fix_repository_distro | lower }}/{{ item }}"
+    url: "{{ fix_repository_nexus_base_url }}/{{ item.path }}/{{ item.name }}"
     dest: >-
       {{
         (ansible_os_family == "Debian") | ternary('/etc/apt/sources.list.d/', '/etc/yum.repos.d/')
-        ~ item
+        ~ item.name
       }}
     mode: '0644'
   loop: "{{ fix_repository_nexus_repo_files }}"
+  loop_control:
+    label: "{{ item.name }}" # Для красивого вывода в логах
   when:
     - fix_repository_type == "nexus"
     - fix_repository_nexus_repo_files | length > 0
-

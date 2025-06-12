@@ -4,6 +4,7 @@
 
 - name: Проверить APT (apt update)
   when: ansible_os_family == "Debian"
+  become: true
   block:
     - name: Выполнить apt update
       command: apt update
@@ -18,6 +19,7 @@
 
 - name: Проверить YUM/DNF (dnf makecache)
   when: ansible_os_family == "RedHat"
+  become: true
   block:
     - name: Выполнить dnf makecache
       command: dnf makecache
