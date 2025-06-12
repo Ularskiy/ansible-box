@@ -5,9 +5,16 @@
   loop_control:
     loop_var: item
 
-- name: "Включение логики расширения существующих LVM"
+- name: "Включение логики расширения LVM (безопасный метод)"
   ansible.builtin.include_tasks: extend_logic.yml
   when: item.operation_type == 'extend'
+  loop: "{{ disks }}"
+  loop_control:
+    loop_var: item
+
+- name: "Включение логики растягивания раздела (рискованный метод)"
+  ansible.builtin.include_tasks: stretch_logic.yml
+  when: item.operation_type == 'stretch'
   loop: "{{ disks }}"
   loop_control:
     loop_var: item

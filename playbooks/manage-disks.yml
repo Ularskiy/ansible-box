@@ -1,37 +1,39 @@
+---
 - name: Полная и гибкая настройка дисков для нескольких хостов
-  hosts: all 
+  hosts: all
   become: true
-  
-#  pre_tasks:
-#    - name: Установить утилиты для работы с дисками (LVM, XFS, Parted)
-#      ansible.builtin.package:
-#        name:
-#          - lvm2
-#          - xfsprogs
-#          - parted
-#        state: present
+
+  pre_tasks:
+    - name: Установить утилиты для работы с дисками (LVM, XFS, Parted)
+      ansible.builtin.package:
+        name:
+          - lvm2
+          - xfsprogs
+          - parted
+          - cloud-utils-growpart
+        state: present
 
   vars:
     disk_configs_by_host:
       '192.168..':
-        - operation_type: extend
-          disk_device: /dev/sda 
+        - operation_type: stretch
+          disk_device: /dev/sda
+          partition_to_stretch: /dev/sda3
           vg_to_extend: rhel
           lvs_to_modify:
             - name: root
               new_size: 50G
               filesystem: /
-              allow_dangerous_resize: true 
+              allow_dangerous_resize: true
             - name: log_lv
               new_size: "100%FREE"
               filesystem: /var/log
               fs_type: xfs
 
-
     disks: "{{ disk_configs_by_host[inventory_hostname] | default([]) }}"
 
 
   roles:
-#    - role: infra/fix-repository
-#      fix_repository_exit_on_success: false
+    - role: infra/fix-repository
+      fix_repository_exit_on_success: false
     - role: infra/manage-disks
