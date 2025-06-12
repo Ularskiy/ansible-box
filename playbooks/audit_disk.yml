@@ -34,6 +34,9 @@
         echo ""
         echo "ИСПОЛЬЗОВАНИЕ ДИСКОВОГО ПРОСТРАНСТВА (df -h):"
         df -h
+        echo ""
+        echo "SELINUX КОНТЕКСТЫ КЛЮЧЕВЫХ ДИРЕКТОРИЙ (ls -Zd)"
+        ls -Zd / /var /var/log /home /opt /usr /etc /boot /var/www /var/lib/mysql 2>/dev/null || true
         echo "==============================================================="
       args:
         executable: /bin/bash

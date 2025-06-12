@@ -3,6 +3,9 @@
     echo "--- LSBLK (Структура блочных устройств) ---"
     lsblk
     echo ""
+    echo "--- LSBLK (Структура блочных устройств с помощью -f) ---"
+    lsblk -f
+    echo ""
     echo "--- PVS (LVM Physical Volumes) ---"
     pvs
     echo ""
@@ -17,6 +20,9 @@
     echo ""
     echo "--- FSTAB (Конфигурация постоянного монтирования) ---"
     cat /etc/fstab
+    echo ""
+    ls -Zd / /var /var/log /home /opt /usr /etc /boot /var/www /var/lib/mysql 2>/dev/null || true
+    echo "========================================================================"
   register: scan_result
   changed_when: false
   args:
