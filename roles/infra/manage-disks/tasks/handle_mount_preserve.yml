@@ -1,0 +1,54 @@
+- name: "ПЕРЕЕЗД | Остановить сервис логирования"
+  become: true
+  ansible.builtin.service:
+    name: "rsyslog" # Оставляем только rsyslog
+  # Убрали цикл, теперь одна задача для одного сервиса
+
+- name: "ПЕРЕЕЗД | Переместить старое содержимое в *.old"
+  become: true
+  ansible.builtin.command: "mv {{ lv_item.filesystem }} {{ lv_item.filesystem }}.old"
+  changed_when: false
+
+- name: "ПЕРЕЕЗД | Создать новую пустую директорию для монтирования"
+  become: true
+  ansible.builtin.file: { path: "{{ lv_item.filesystem }}", state: directory, mode: '0755' }
+
+- name: "ПЕРЕЕЗД | Отформатировать новый том"
+  become: true
+  community.general.filesystem:
+    dev: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ effective_fs_type }}"
+  when: effective_fs_type != ""
+
+- name: "ПЕРЕЕЗД | Смонтировать новый том"
+  become: true
+  ansible.builtin.mount:
+    path: "{{ lv_item.filesystem }}"
+    src: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    fstype: "{{ effective_fs_type }}"
+    state: mounted
+    opts: defaults
+    dump: 0
+    passno: 2
+
+- name: "ПЕРЕЕЗД | Скопировать старую структуру и файлы обратно"
+  become: true
+  ansible.builtin.command: "cp -aT {{ lv_item.filesystem }}.old/ {{ lv_item.filesystem }}/"
+  changed_when: true
+
+- name: "ПЕРЕЕЗД | Применить правильные SELinux контексты ко всему"
+  become: true
+  ansible.builtin.command: "restorecon -R -v {{ lv_item.filesystem }}"
+  changed_when: true
+  when: ansible_selinux.status == 'enabled'
+
+- name: "ПЕРЕЕЗД | Удалить временную директорию *.old"
+  become: true
+  ansible.builtin.file:
+    path: "{{ lv_item.filesystem }}.old"
+    state: absent
+
+- name: "ПЕРЕЕЗД | Запустить сервис логирования обратно"
+  become: true
+  ansible.builtin.service:
+    name: "rsyslog" # Оставляем только rsyslog

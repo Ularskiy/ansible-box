@@ -16,10 +16,10 @@
 
   vars:
     disk_configs_by_host:
-      '192.168.1.1':
-        - operation_type: extend
+      '192.168.157.194':
+        - operation_type: stretch
           disk_device: /dev/sda
-#          partition_to_stretch: /dev/sda3
+          partition_to_stretch: /dev/sda3
           vg_to_extend: rhel
           lvs_to_modify:
             - name: root

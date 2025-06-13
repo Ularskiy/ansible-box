@@ -1,0 +1,13 @@
+- name: "SELINUX | Установить заданный контекст для '{{ lv_item.filesystem }}'"
+  become: true
+  community.general.sefcontext:
+    target: "{{ lv_item.filesystem }}(/.*)?"
+    setype: "{{ lv_item.selinux_context }}"
+    state: present
+  when: lv_item.selinux_context is defined and ansible_selinux.status == 'enabled'
+
+- name: "SELINUX | Применить контекст к '{{ lv_item.filesystem }}'"
+  become: true
+  ansible.builtin.command: "restorecon -R -v {{ lv_item.filesystem }}"
+  changed_when: true
+  when: lv_item.selinux_context is defined and ansible_selinux.status == 'enabled'

@@ -1,68 +1,23 @@
-- name: "ШАГ 3 | Умное определение типа ФС для '{{ lv_item.name }}'"
+- name: "Управление LVM и ФС для тома '{{ lv_item.name }}'"
+  ansible.builtin.include_tasks: handle_lv_and_fs.yml
+
+- name: "Проверить состояние точки монтирования '{{ lv_item.filesystem }}'"
   become: true
-  ansible.builtin.shell: "blkid -s TYPE -o value /dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
-  register: blkid_check
-  failed_when: false
-  changed_when: false
-
-- name: "ШАГ 3 | Вычисление итогового типа ФС для '{{ lv_item.name }}'"
-  ansible.builtin.set_fact:
-    effective_fs_type: "{{ lv_item.fs_type | default(blkid_check.stdout) }}"
-
-- name: "ШАГ 3 | Изменение/создание Logical Volume '{{ lv_item.name }}'"
-  become: true
-  community.general.lvol:
-    vg: "{{ item.vg_to_extend }}"
-    lv: "{{ lv_item.name }}"
-    size: "{{ lv_item.new_size }}"
-    state: present
-
-- name: "ШАГ 4 | Расширение/создание файловой системы для '{{ lv_item.name }}'"
-  become: true
-  community.general.filesystem:
-    dev: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
-    fstype: "{{ effective_fs_type }}"
-    resizefs: true
-  when: effective_fs_type != ""
-
-
-- name: "ШАГ 5a. Убедиться, что точка монтирования существует"
-  become: true
-  ansible.builtin.file:
-    path: "{{ lv_item.filesystem }}"
-    state: directory
-    mode: '0755'
-  when: lv_item.fs_type is defined
-
-- name: "ШАГ 5b. Запомнить 'правильный' SELinux контекст точки монтирования ДО монтирования"
-  become: true
-  ansible.builtin.stat:
-    path: "{{ lv_item.filesystem }}"
+  ansible.builtin.stat: { path: "{{ lv_item.filesystem }}" }
   register: mount_point_stat
-  when: lv_item.fs_type is defined and ansible_selinux.status == 'enabled'
 
-- name: "ШАГ 5. Смонтировать новый том '{{ lv_item.name }}' и добавить в fstab"
+- name: "Подсчитать количество файлов в точке монтирования"
   become: true
-  ansible.builtin.mount:
-    path: "{{ lv_item.filesystem }}"
-    src: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
-    fstype: "{{ lv_item.fs_type }}" # Теперь мы берем тип ФС только для новых томов
-    state: mounted
-    opts: defaults
-    dump: 0
-    passno: 2
-  when: lv_item.fs_type is defined
+  ansible.builtin.shell: "ls -A {{ lv_item.filesystem }} | wc -l"
+  register: mount_point_content_count
+  when: mount_point_stat.stat.exists and mount_point_stat.stat.isdir
+  changed_when: false
+  failed_when: false
 
-- name: "ШАГ 6. Установить заданный SELinux контекст"
-  become: true
-  community.general.sefcontext:
-    target: "{{ lv_item.filesystem }}(/.*)?"
-    setype: "{{ lv_item.selinux_context }}" # <-- Используем переменную, которую ты задал
-    state: present
-  when: lv_item.selinux_context is defined and ansible_selinux.status == 'enabled'
+- name: "Сценарий ПРОСТОГО монтирования (папка пуста или не существует)"
+  ansible.builtin.include_tasks: handle_mount_simple.yml
+  when: lv_item.fs_type is defined and (not mount_point_stat.stat.exists or mount_point_content_count.stdout == "0")
 
-- name: "ШАГ 7. Применить SELinux контекст"
-  become: true
-  ansible.builtin.command: "restorecon -R -v {{ lv_item.filesystem }}"
-  changed_when: true
-  when: lv_item.selinux_context is defined and ansible_selinux.status == 'enabled'
+- name: "Сценарий 'ПЕРЕЕЗД' (папка существует и в ней есть файлы)"
+  ansible.builtin.include_tasks: handle_mount_preserve.yml
+  when: lv_item.fs_type is defined and (mount_point_stat.stat.exists and mount_point_content_count.stdout | int > 0)
