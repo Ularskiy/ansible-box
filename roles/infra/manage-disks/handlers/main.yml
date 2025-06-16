@@ -1,2 +1,4 @@
----
-# handlers file for manage-disks
+- name: Перезагрузить сервер (если требуется)
+  ansible.builtin.reboot:
+    reboot_timeout: 200
+  when: reboot_if_changed | default(false)

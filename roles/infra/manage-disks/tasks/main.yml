@@ -1,18 +1,17 @@
-- name: "Включение логики создания диска с нуля (ЗАГЛУШКА)"
-  ansible.builtin.debug:
-    msg: "Логика 'create' еще не реализована."
-  when: item.operation_type | default('create') == 'create'
-  loop: "{{ disks }}"
-  loop_control: { loop_var: item }
+- name: "MANAGE-DISKS | Установить необходимые утилиты"
+  become: true
+  ansible.builtin.package:
+    name:
+      - lvm2
+      - xfsprogs
+      - parted
+      - cloud-utils-growpart
+      - policycoreutils-python-utils
+      - python3-libselinux
+    state: present
 
-- name: "Включение логики расширения LVM (безопасный метод)"
-  ansible.builtin.include_tasks: extend_logic.yml
-  when: item.operation_type == 'extend'
+- name: "Обработка дисковой конфигурации: {{ item.operation_type | default('create') }}"
+  ansible.builtin.include_tasks: "{{ item.operation_type | default('create') }}_logic.yml"
   loop: "{{ disks }}"
-  loop_control: { loop_var: item }
-
-- name: "Включение логики растягивания раздела (рискованный метод)"
-  ansible.builtin.include_tasks: stretch_logic.yml
-  when: item.operation_type == 'stretch'
-  loop: "{{ disks }}"
-  loop_control: { loop_var: item }
+  loop_control:
+    loop_var: item

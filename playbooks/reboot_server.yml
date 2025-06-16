@@ -1,0 +1,9 @@
+- name: Перезагрузка всех серверов
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Перезагрузка серверов
+      ansible.builtin.reboot:
+        msg: "Перезагрузка инициирована Ansible"
+        reboot_timeout: 600 

@@ -1,16 +1,18 @@
-- name: "Создание точки монтирования '{{ lv_item.filesystem }}'"
+- name: "ПРОСТОЙ | Создание точки монтирования '{{ lv_item.mount_point }}'"
   become: true
-  ansible.builtin.file: { path: "{{ lv_item.filesystem }}", state: directory, mode: '0755' }
+  ansible.builtin.file: { path: "{{ lv_item.mount_point }}", state: directory, mode: '0755' }
 
-- name: "Монтирование и запись в fstab"
+- name: "ПРОСТОЙ | Монтирование и запись в fstab"
   become: true
   ansible.builtin.mount:
-    path: "{{ lv_item.filesystem }}"
-    src: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    path: "{{ lv_item.mount_point }}" # <-- ИЗМЕНЕНО
+    src: "/dev/{{ item.vg_name | default(item.vg_to_extend) }}/{{ lv_item.name }}"
     fstype: "{{ effective_fs_type }}"
     state: mounted
     opts: defaults
     dump: 0
     passno: 2
+  notify: Перезагрузить сервер (если требуется)
+
 - name: "ПРОСТОЙ | Настройка SELinux"
   ansible.builtin.include_tasks: handle_selinux.yml

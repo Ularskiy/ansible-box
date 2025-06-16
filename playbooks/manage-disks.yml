@@ -1,41 +1,40 @@
-- name: Полная и гибкая настройка дисков для нескольких хостов
+- name: manage_disks playbook
   hosts: all
   become: true
-
-#  pre_tasks:
-#    - name: Установить утилиты для работы с дисками (LVM, XFS, Parted)
-#      ansible.builtin.package:
-#        name:
-#          - lvm2
-#          - xfsprogs
-#          - parted
-#          - cloud-utils-growpart
-#          - policycoreutils-python-utils
-#          - python3-libselinux
-#        state: present
-
+  
   vars:
+    reboot_if_changed: false
     disk_configs_by_host:
-      '192.168.1.1':
-        - operation_type: extend
+      '192.168.':
+        - operation_type: stretch
           disk_device: /dev/sda
-#          partition_to_stretch: /dev/sda3
+          partition_to_stretch: /dev/sda3
           vg_to_extend: rhel
           lvs_to_modify:
             - name: root
               new_size: 50G
-              filesystem: /
+              mount_point: /
               allow_dangerous_resize: true
             - name: log_lv
               new_size: "100%FREE"
-              filesystem: /var/log
+              mount_point: /var/log
               fs_type: xfs
               selinux_context: var_log_t
+        - operation_type: create
+          device: /dev/sdb
+          vg_name: sdb_vg
+          lvs_to_create:
+            - name: data_lv
+              size: "100%FREE"
+              mount_point: /data
+              fs_type: xfs
+              selinux_context: default_t
 
+              
     disks: "{{ disk_configs_by_host[inventory_hostname] | default([]) }}"
 
 
   roles:
-#    - role: infra/fix-repository
-#      fix_repository_exit_on_success: false
+    - role: infra/fix-repository
+      fix_repository_exit_on_success: false
     - role: infra/manage-disks

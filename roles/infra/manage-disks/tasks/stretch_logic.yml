@@ -4,14 +4,11 @@
 - name: Подключение файла сканирования "ДО"
   ansible.builtin.include_tasks: scan_disks.yml
 
-- name: "STRETCH | Установить утилиту growpart"
-  become: true
-  ansible.builtin.package: { name: cloud-utils-growpart, state: present }
-
 - name: "STRETCH | 'Растянуть' раздел {{ item.partition_to_stretch }}"
   become: true
   ansible.builtin.command: "growpart {{ item.disk_device }} {{ item.partition_to_stretch | replace(item.disk_device, '') }}"
   changed_when: true
+  notify: Перезагрузить сервер (если требуется)
 
 - name: "STRETCH | Заставить ядро перечитать таблицу разделов"
   become: true
@@ -22,11 +19,13 @@
   become: true
   ansible.builtin.command: "pvresize {{ item.partition_to_stretch }}"
   changed_when: true
+  notify: Перезагрузить сервер (если требуется)
 
 - name: "STRETCH | Выполнить операции для каждого Logical Volume"
   ansible.builtin.include_tasks: extend_lv_item.yml
   loop: "{{ item.lvs_to_modify }}"
-  loop_control: { loop_var: lv_item }
+  loop_control:
+    loop_var: lv_item
 
 - name: Подключение файла сканирования "ПОСЛЕ"
   ansible.builtin.include_tasks: scan_disks.yml

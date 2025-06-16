@@ -1,0 +1,84 @@
+- name: Подключение файла с проверками
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Подключение файла сканирования "ДО"
+  ansible.builtin.include_tasks: scan_disks.yml
+
+- name: "CREATE | Создать раздел на весь диск"
+  become: true
+  community.general.parted:
+    device: "{{ item.device }}"
+    number: 1
+    state: present
+    part_end: 100%
+    flags: [ lvm ]
+  notify: Перезагрузить сервер (если требуется)
+
+- name: "CREATE | Создать Physical Volume"
+  become: true
+  ansible.builtin.shell: "yes | pvcreate -ff {{ item.device }}1"
+  changed_when: true
+
+- name: "CREATE | Создать новую Volume Group"
+  become: true
+  community.general.lvg:
+    vg: "{{ item.vg_name }}"
+    pvs: "{{ item.device }}1"
+    state: present
+  notify: Перезагрузить сервер (если требуется)
+
+- name: "CREATE | Создание Logical Volume '{{ lv_item.name }}'"
+  become: true
+  community.general.lvol:
+    vg: "{{ item.vg_name }}"
+    lv: "{{ lv_item.name }}"
+    size: "{{ lv_item.size }}"
+    state: present
+  notify: "Перезагрузить сервер (если требуется)"
+  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop_control:
+    loop_var: lv_item
+
+- name: "CREATE | Создание файловой системы '{{ lv_item.fs_type }}'"
+  become: true
+  community.general.filesystem:
+    dev: "/dev/{{ item.vg_name }}/{{ lv_item.name }}"
+    fstype: "{{ lv_item.fs_type }}"
+  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop_control:
+    loop_var: lv_item
+
+- name: "CREATE | Создание точки монтирования '{{ lv_item.mount_point }}'"
+  become: true
+  ansible.builtin.file:
+    path: "{{ lv_item.mount_point }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop_control:
+    loop_var: lv_item
+
+- name: "CREATE | Монтирование и запись в fstab"
+  become: true
+  ansible.builtin.mount:
+    path: "{{ lv_item.mount_point }}"
+    src: "/dev/{{ item.vg_name }}/{{ lv_item.name }}"
+    fstype: "{{ lv_item.fs_type }}"
+    state: mounted
+    opts: defaults
+    dump: 0
+    passno: 2
+  notify: "Перезагрузить сервер (если требуется)"
+  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop_control:
+    loop_var: lv_item
+
+- name: "CREATE | Настройка SELinux"
+  ansible.builtin.include_tasks: handle_selinux.yml
+  when: lv_item.selinux_context is defined
+  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop_control:
+    loop_var: lv_item
+
+- name: Подключение файла сканирования "ПОСЛЕ"
+  ansible.builtin.include_tasks: scan_disks.yml
