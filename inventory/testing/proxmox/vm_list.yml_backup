@@ -1,11 +1,11 @@
 vm_list:
   - name: test1 
-    id: 108
+    id: 1000
     state: absent
     ci_user: ansible
-    ip: 192.168.10.101
+    ip: 192.168.
     cidr: 24
-    gw: 192.168.10.1
+    gw: 192.168.
     source_vmid: 110
     target_node: alm2a-itpsector-pve
     bridge: br-vlan2876

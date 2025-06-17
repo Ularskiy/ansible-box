@@ -1,4 +1,5 @@
 .vault_pass.txt
-**/*vault*
+inventory/testing/proxmox/vault_proxmox-cloud-init-vm
+#**/*vault*
 **/*.pub*
 ansible.cfg

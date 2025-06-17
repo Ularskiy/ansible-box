@@ -1,0 +1,8 @@
+[defaults]
+roles_path = roles
+vault_password_file = /home/username/ansible-box/.vault_pass.txt_template
+host_key_checking = False
+retry_files_enabled = False
+deprecation_warnings = False
+timeout = 15
+private_key_file = /home/username/.ssh/id_ansible
