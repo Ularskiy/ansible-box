@@ -1,24 +1,24 @@
 - name: "Управление LVM и ФС для тома '{{ lv_item.name }}'"
   ansible.builtin.include_tasks: handle_lv_and_fs.yml
 
-- name: "Проверить состояние точки монтирования '{{ lv_item.mount_point }}'" # <-- ИЗМЕНЕНО
+- name: "Проверить состояние точки монтирования '{{ lv_item.mount_point }}'" 
   become: true
   ansible.builtin.stat:
-    path: "{{ lv_item.mount_point }}" # <-- ИЗМЕНЕНО
+    path: "{{ lv_item.mount_point }}" 
   register: mount_point_stat
 
 - name: "Подсчитать количество файлов в точке монтирования"
   become: true
-  ansible.builtin.shell: "ls -A {{ lv_item.mount_point }} | wc -l" # <-- ИЗМЕНЕНО
+  ansible.builtin.shell: "ls -A {{ lv_item.mount_point }} | wc -l" 
   register: mount_point_content_count
   when: mount_point_stat.stat.exists and mount_point_stat.stat.isdir
   changed_when: false
   failed_when: false
 
-- name: "Сценарий ПРОСТОГО монтирования (папка пуста или не существует)"
+- name: "Сценарий дефолтного монтирования (папка пуста или не существует)"
   ansible.builtin.include_tasks: handle_mount_simple.yml
   when: lv_item.fs_type is defined and (not mount_point_stat.stat.exists or mount_point_content_count.stdout == "0")
 
-- name: "Сценарий 'ПЕРЕЕЗД' (папка существует и в ней есть файлы)"
+- name: "Сценарий 'SAFE MOUNT' (папка существует и в ней есть файлы)"
   ansible.builtin.include_tasks: handle_mount_preserve.yml
   when: lv_item.fs_type is defined and (mount_point_stat.stat.exists and mount_point_content_count.stdout | int > 0)

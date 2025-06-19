@@ -1,19 +1,19 @@
-- name: "ПЕРЕЕЗД | Остановить сервис логирования"
+- name: "SAFE MOUNT | Остановить сервис логирования"
   become: true
   ansible.builtin.service:
     name: rsyslog
     state: stopped
 
-- name: "ПЕРЕЕЗД | Переместить старое содержимое в *.old"
+- name: "SAFE MOUNT | Переместить старое содержимое в *.old"
   become: true
   ansible.builtin.command: "mv {{ lv_item.mount_point }} {{ lv_item.mount_point }}.old"
   changed_when: false
 
-- name: "ПЕРЕЕЗД | Создать новую пустую директорию"
+- name: "SAFE MOUNT | Создать новую пустую директорию"
   become: true
   ansible.builtin.file: { path: "{{ lv_item.mount_point }}", state: directory, mode: '0755' }
 
-- name: "ПЕРЕЕЗД | Смонтировать новый том"
+- name: "SAFE MOUNT | Смонтировать новый том"
   become: true
   ansible.builtin.mount:
     path: "{{ lv_item.mount_point }}"
@@ -25,21 +25,21 @@
     passno: 2
   notify: Перезагрузить сервер (если требуется)
 
-- name: "ПЕРЕЕЗД | Скопировать старую структуру и файлы обратно"
+- name: "SAFE MOUNT | Скопировать старую структуру и файлы обратно"
   become: true
   ansible.builtin.command: "cp -aT {{ lv_item.mount_point }}.old/ {{ lv_item.mount_point }}/"
   changed_when: true
 
-- name: "ПЕРЕЕЗД | Настройка SELinux"
+- name: "SAFE MOUNT | Настройка SELinux"
   ansible.builtin.include_tasks: handle_selinux.yml
 
-- name: "ПЕРЕЕЗД | Удалить временную директорию *.old"
+- name: "SAFE MOUNT | Удалить временную директорию *.old"
   become: true
   ansible.builtin.file:
     path: "{{ lv_item.mount_point }}.old"
     state: absent
 
-- name: "ПЕРЕЕЗД | Запустить сервис логирования обратно"
+- name: "SAFE MOUNT | Запустить сервис логирования обратно"
   become: true
   ansible.builtin.service:
     name: rsyslog

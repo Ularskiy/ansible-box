@@ -35,7 +35,7 @@
     size: "{{ lv_item.size }}"
     state: present
   notify: "Перезагрузить сервер (если требуется)"
-  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop: "{{ item.lvs_to_create }}" 
   loop_control:
     loop_var: lv_item
 
@@ -44,7 +44,7 @@
   community.general.filesystem:
     dev: "/dev/{{ item.vg_name }}/{{ lv_item.name }}"
     fstype: "{{ lv_item.fs_type }}"
-  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
 
@@ -54,7 +54,7 @@
     path: "{{ lv_item.mount_point }}"
     state: directory
     mode: '0755'
-  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
 
@@ -69,14 +69,14 @@
     dump: 0
     passno: 2
   notify: "Перезагрузить сервер (если требуется)"
-  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
 
 - name: "CREATE | Настройка SELinux"
   ansible.builtin.include_tasks: handle_selinux.yml
   when: lv_item.selinux_context is defined
-  loop: "{{ item.lvs_to_create }}" # <-- Цикл на задаче
+  loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
 

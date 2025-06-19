@@ -4,7 +4,7 @@ proxmox_token: ""
 proxmox_node: ""
 proxmox_template: ""
 template_vmid: #id_number_template_vm
-ssh_key_filename: "ssh_key_vm"
+ssh_key_filename: "/home/ularskiy/.ssh/id_ansible.pub"
 
 vm_list:
   - name: #hostname_vm

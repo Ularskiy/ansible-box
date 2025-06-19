@@ -19,8 +19,8 @@
     forbidden_paths: ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
   ansible.builtin.assert:
     that:
-      - lv_item.mount_point not in forbidden_paths or (lv_item.allow_dangerous_resize | default(false)) # <-- ИЗМЕНЕНО
-    fail_msg: "Попытка изменить критическую точку монтирования '{{ lv_item.mount_point }}' без флага подтверждения 'allow_dangerous_resize: true'." # <-- ИЗМЕНЕНО
+      - lv_item.mount_point not in forbidden_paths or (lv_item.allow_dangerous_resize | default(false)) 
+    fail_msg: "Попытка изменить критическую точку монтирования '{{ lv_item.mount_point }}' без флага подтверждения 'allow_dangerous_resize: true'." 
   loop: "{{ item.lvs_to_modify }}"
   loop_control: { loop_var: lv_item }
   when: "item.operation_type == 'extend' or item.operation_type == 'stretch'"

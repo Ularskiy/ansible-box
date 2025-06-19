@@ -1,38 +1,72 @@
-Role Name
-=========
+# Ansible Роль: `infra/manage-disks`
 
-A brief description of the role goes here.
+## Назначение:
+Эта роль отвечает за конфигурирование дисков: создание, расширение, обнаружение и подготовку под монтирование.
+Поддерживает операции:
+- `create` - полноценное создание LV + FS + mount
+- `extend` - увеличение LV
+- `stretch` - расширение доступной емкости 
 
-Requirements
-------------
+### Статус реализации: 
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+| Возможность               | Статус        |
+|---------------------------|---------------|
+| create                    |    Работает   |
+| extend                    |    Работает   | 
+| stretch                   |    Работает   |    
 
-Role Variables
---------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+## Требуемые модули:
+- Ansible Core = 2.14.8
+- Proxmox VE 8.2.2 
+- Python 3.11.2 на Ansible контроллере
 
-Dependencies
-------------
+## Таблица ключей из словаря
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+### Верхнеуровневые ключи 
 
-Example Playbook
-----------------
+| Ключ                   | Тип              | Описание                                                                 |
+|------------------------|------------------|--------------------------------------------------------------------------|
+| `operation_type`       | `string (enum)`  | Тип операции: `create`, `extend`, `stretch`                              |
+| `device`               | `string`         | Блочное устройство (например, `/dev/sdb`)                                |
+| `partition_to_stretch` | `string`         | Раздел, который нужно расширить (например, `/dev/sda3`)                  |
+| `vg_name`              | `string`         | Название VG, которое будет создано                                       |
+| `vg_to_extend`         | `string`         | Существующая VG, которую нужно расширить                                 |
+| `lvs_to_create`        | `list(dict)`     | Список томов, которые нужно создать в VG                                 |
+| `lvs_to_modify`        | `list(dict)`     | Список томов, которые нужно изменить (resize, mount, label и т.д.)       |
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+### Вложенные ключи (`lvs_to_create` / `lvs_to_modify`)
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+| Ключ                    | Тип              | Описание                                                                 |
+|-------------------------|------------------|--------------------------------------------------------------------------|
+| `name`                  | `string`         | Имя Logical Volume                                                       |
+| `size`                  | `string`         | Размер тома (например, `10G`, `100%FREE`)                                |
+| `new_size`              | `string`         | Новый размер тома (при изменении)                                        |
+| `mount_point`           | `string`         | Точка монтирования                                                       |
+| `fs_type`               | `string`         | Тип файловой системы. Поддерживаются `xfs`, `ext4`, `btrfs`, `vfat`, `ntfs` и другие — при наличии соответствующих утилит в системе. Не все типы ФС поддерживают расширение (`resizefs`). |
+| `fs_label`              | `string`         | Метка файловой системы (опционально)                                     |
+| `preserve`              | `bool`           | Сохранять содержимое при наличии ФС (`true` / `false`)                   |
+| `selinux_context`       | `string`         | SELinux метка (`var_log_t`, `default_t`, и т.д.)                         |
+| `allow_dangerous_resize`| `bool`           | Разрешить потенциально опасное изменение размера                         |
+| `state`                 | `string`         | `present` или `absent` для управления томом                              |
 
-License
--------
+### Подробный [пример использования ключей](../../../docs/text/manage-disks/example_use_keys.md)
 
-BSD
+### Поддержка `resizefs` по типам файловых систем
 
-Author Information
-------------------
+| Файловая система | Пакет / утилита              | Поддержка `resizefs`          |
+|------------------|------------------------------|-------------------------------|
+| `xfs`            | `xfsprogs` (`xfs_growfs`)    | Да                            |
+| `ext4`           | `e2fsprogs` (`resize2fs`)    | Да                            |
+| `btrfs`          | `btrfs-progs`                | Да (`btrfs filesystem resize`)|
+| `vfat`           | `dosfstools`                 | Нет                           |
+| `ntfs`           | `ntfs-3g`, `ntfsresize`      | Частично                      |
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+
+### Рекомендации и предостережения
+
+- Никогда не выполняй `create` для системных путей (`/`, `/usr`, `/etc`, ...) — роль проверяет это, но всё равно требует осторожности.
+- Для критических путей (`/var`, `/home`, и т.д.) при `extend/stretch`  необходимо указывать `allow_dangerous_resize: true`
+- Перед запуском **всегда делай audit** и **бэкап** или **снэпшот** машины.
+
+> Перед тем как использовать данную роль, рекомендую провести аудит дисков. Получив подробную информацию по дискам, легче будет написать данные в Ansible. Аудит можно провести с помощью плейбука который указан [здесь.](../../../docs/text/manage-disks/example_use_keys.md)
