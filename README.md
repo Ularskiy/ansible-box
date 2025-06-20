@@ -9,10 +9,11 @@
 # Оглавление репозитория
 + [Роль для настройки пользователей](./roles/infra/manage-users/)     
 + [Роль для настройки группы](./roles/infra/manage-groups/)  
-+ [Роль для настройки SSH](./roles/infra/manage-users/)  
++ [Роль для настройки SSH](./roles/infra/manage-ssh/)  
 + [Роль для настройки репозиториев](./roles/infra/fix-repository/)
 + [Роль для настройки дисков](./roles/infra/manage-disks/)
 + [Роль для управления виртуальными машинами в Proxmox](./roles/infra/proxmox-cloud-init-vm/)
++ [Роль для развертывания node-exporter](./roles/monitoring/node-exporter/)
 
 
 

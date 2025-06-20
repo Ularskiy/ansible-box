@@ -1,6 +1,6 @@
 ## Пример использования ключей 
 
-### Полный набор ключей
+### 1. Полный набор ключей
 ```yaml
 vm_list:
   - name: demo-vm-full
@@ -35,7 +35,7 @@ vm_list:
     backup_storage: backup-nfs
 ```
 
-### Создание новой ВМ
+### 2. Создание новой ВМ
 ```yaml
 vm_list:
   - name: debian-test-01
@@ -55,7 +55,7 @@ vm_list:
       size: 10G
 ```
 
-### Удаление ВМ
+### 3. Удаление ВМ
 ```yaml
 vm_list:
   - name: debian-old-01
@@ -64,7 +64,7 @@ vm_list:
     target_node: pve1
 ```
 
-### Расширение диска и запуск
+### 4. Расширение диска и запуск
 ```yaml
 vm_list:
   - name: debian-vm-prod
@@ -75,7 +75,7 @@ vm_list:
     target_node: pve2
 ```
 
-### Создание снапшота 
+### 5. оздание снапшота 
 ```yaml
 vm_list:
   - name: backend-db
@@ -85,7 +85,7 @@ vm_list:
     target_node: pve2
 ```
 
-### Миграция VM между нодами
+### 6. Миграция VM между нодами
 ```yaml
 vm_list:
   - name: win-tools
