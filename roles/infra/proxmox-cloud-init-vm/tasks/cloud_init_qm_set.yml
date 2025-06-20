@@ -6,12 +6,20 @@
   delegate_to: "{{ item.target_node }}"
   become: true
 
+- name: Сформировать ipconfig0 строку, если заданы IP, CIDR и GW
+  set_fact:
+    ipconfig0_string: "ip={{ item.ip }}/{{ item.cidr }},gw={{ item.gw }}"
+  when:
+    - item.ip is defined
+    - item.cidr is defined
+    - item.gw is defined
+
 - name: Установить cloud-init параметры через qm set
   shell: |
     qm set {{ item.id }} \
       --ciuser {{ item.ci_user | default('ansible') }} \
       --sshkey /tmp/cloudinit_key.pub \
-      --ipconfig0 ip={{ item.ip }}/{{ item.cidr | default(24) }},gw={{ item.gw | default('192.168.100.1') }} \
+      {% if ipconfig0_string is defined %}--ipconfig0 {{ ipconfig0_string }}{% endif %} \
       --nameserver {{ item.nameserver | default('8.8.8.8') }} \
       --searchdomain {{ item.searchdomain | default('local') }} \
       --memory {{ item.memory | default(1024) }} \

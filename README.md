@@ -13,6 +13,7 @@
 + [Роль для настройки репозиториев](./roles/infra/fix-repository/)
 + [Роль для настройки дисков](./roles/infra/manage-disks/)
 + [Роль для управления виртуальными машинами в Proxmox](./roles/infra/proxmox-cloud-init-vm/)
++ [Роль для развертывания node-exporter](./roles/monitoring/node-exporter/)
 
 
 

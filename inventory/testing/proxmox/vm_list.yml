@@ -12,7 +12,7 @@ vm_list:
 
   - name: test-ssh-2
     id: 1001
-    state: absent
+    state: started
     ci_user: ansible
     ip: 10.96.34.146
     cidr: 25
