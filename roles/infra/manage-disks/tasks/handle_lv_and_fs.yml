@@ -1,22 +1,26 @@
-- name: "Определение типа ФС для '{{ lv_item.name }}' (если существует)"
+- name: "Определение типа ФС для '{{ lv_name }}' (если существует)"
   become: true
-  ansible.builtin.shell: "blkid -s TYPE -o value /dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+  ansible.builtin.shell: "blkid -s TYPE -o value /dev/{{ vg_name }}/{{ lv_name }}"
   register: blkid_check
   failed_when: false
   changed_when: false
 
-- name: "Вычисление итогового типа ФС для '{{ lv_item.name }}'"
+- name: "Вычисление итогового типа ФС для '{{ lv_name }}'"
   ansible.builtin.set_fact:
-    effective_fs_type: "{{ lv_item.fs_type | default(blkid_check.stdout) }}"
+    effective_fs_type: "{{ fs_type | default(blkid_check.stdout) }}"
 
-- name: "Изменение/создание Logical Volume '{{ lv_item.name }}'"
+- name: "Изменение/создание Logical Volume '{{ lv_name }}'"
   become: true
-  community.general.lvol: { vg: "{{ item.vg_to_extend }}", lv: "{{ lv_item.name }}", size: "{{ lv_item.new_size }}", state: present }
+  community.general.lvol:
+    vg: "{{ vg_name }}"
+    lv: "{{ lv_name }}"
+    size: "{{ new_size }}"
+    state: present
 
-- name: "Расширение/создание файловой системы для '{{ lv_item.name }}'"
+- name: "Расширение/создание файловой системы для '{{ lv_name }}'"
   become: true
   community.general.filesystem:
-    dev: "/dev/{{ item.vg_to_extend }}/{{ lv_item.name }}"
+    dev: "/dev/{{ vg_name }}/{{ lv_name }}"
     fstype: "{{ effective_fs_type }}"
     resizefs: true
   when: effective_fs_type != ""

@@ -1,0 +1,16 @@
+- name: Фикс репозитория (fix-repository)
+  hosts: squid,test_hosts
+  become: true
+
+  vars:
+    fix_repository_enabled: true
+    fix_repository_type: "proxy"
+    fix_repository_proxy_port: 3128
+    fix_repository_enable_apt_proxy_conf: true
+    fix_repository_enable_yum_proxy_conf: true
+    fix_repository_skip_check_existing: false
+    fix_repository_backup: false
+    fix_repository_exit_on_success: false
+
+  roles:
+    - infra/fix-repository

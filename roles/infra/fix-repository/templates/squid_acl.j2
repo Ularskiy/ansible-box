@@ -1,0 +1,4 @@
+{% for ip in fix_repository_squid_allowed_clients_ips %}
+acl allowed_ansible_client_{{ ip | replace('.', '_') }} src {{ ip }}
+http_access allow allowed_ansible_client_{{ ip | replace('.', '_') }}
+{% endfor %}

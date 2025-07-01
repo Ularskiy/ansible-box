@@ -1,40 +1,46 @@
-- name: manage_disks playbook
+# ANSIBLE_STDOUT_CALLBACK=yaml
+- name: Управление разделами, LVM и ФС
   hosts: all
   become: true
-  
+
   vars:
     reboot_if_changed: false
+
     disk_configs_by_host:
-      '192.168.':
-        - operation_type: stretch
-          disk_device: /dev/sda
-          partition_to_stretch: /dev/sda3
-          vg_to_extend: rhel
+      '192.168.': 
+        - operation_type: create
+          device: /dev/sda
+          device_partition_number: 4
+          vg_name: rhel
+          add_to_existing_vg: true
+        - operation_type: extend
+          vg_name: rhel
           lvs_to_modify:
             - name: root
               new_size: 50G
               mount_point: /
+              fs_type: ext4
               allow_dangerous_resize: true
             - name: log_lv
               new_size: "100%FREE"
               mount_point: /var/log
-              fs_type: xfs
+              fs_type: ext4
               selinux_context: var_log_t
         - operation_type: create
           device: /dev/sdb
+          device_partition_number: 1
+          create_disklabel_if_missing: true
+          disklabel_type: gpt
           vg_name: sdb_vg
           lvs_to_create:
             - name: data_lv
               size: "100%FREE"
               mount_point: /data
-              fs_type: xfs
+              fs_type: ext4
               selinux_context: default_t
 
-              
+
     disks: "{{ disk_configs_by_host[inventory_hostname] | default([]) }}"
 
-
   roles:
-    - role: infra/fix-repository
-      fix_repository_exit_on_success: false
     - role: infra/manage-disks

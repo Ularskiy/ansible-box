@@ -1,9 +1,21 @@
-- name: "SELINUX | Установить заданный контекст для '{{ lv_item.mount_point }}'"
+- name: "SELINUX | Восстановить системный контекст (если системная точка)"
+  become: true
+  ansible.builtin.command: restorecon -Rv {{ mount_point }}
+  when:
+    - ansible_selinux.status == 'enabled'
+    - mount_point in selinux_protected_mount_points
+    - selinux_context is not defined or selinux_context == "var_log_t"
+
+- name: "SELINUX | Установить заданный контекст для кастомной точки"
   become: true
   community.general.sefcontext:
-    target: "{{ lv_item.mount_point }}(/.*)?"
-    setype: "{{ lv_item.selinux_context }}"
+    target: "{{ mount_point }}(/.*)?"
+    setype: "{{ selinux_context }}"
     state: present
     reload: true
-  when: lv_item.selinux_context is defined and ansible_selinux.status == 'enabled'
+  when:
+    - ansible_selinux.status == 'enabled'
+    - selinux_context is defined
+    - mount_point not in selinux_protected_mount_points
   notify: Перезагрузить сервер (если требуется)
+

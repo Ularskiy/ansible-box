@@ -1,0 +1,23 @@
+#  ANSIBLE_STDOUT_CALLBACK=yaml необходимо писать данную перед запуском плейбука
+- name: Аудит дисковой подсистемы 
+  hosts: all 
+  gather_facts: false
+  become: true
+
+  tasks:
+    - name: Собрать информацию о дисках системными командами
+      ansible.builtin.shell: |
+        echo "==============================================================="
+        echo "ОТЧЕТ ПО ХОСТУ: $(hostname)"
+        echo "==============================================================="
+        echo "ОБЩАЯ СТРУКТУРА БЛОЧНЫХ УСТРОЙСТВ (lsblk):"
+        lsblk
+        echo ""
+      args:
+        executable: /bin/bash
+      register: audit_report
+      changed_when: false
+
+    - name: Показать сводный отчет
+      ansible.builtin.debug:
+        msg: "{{ audit_report.stdout }}"

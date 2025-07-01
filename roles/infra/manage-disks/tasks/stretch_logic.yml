@@ -7,7 +7,11 @@
 - name: "STRETCH | 'Растянуть' раздел {{ item.partition_to_stretch }}"
   become: true
   ansible.builtin.command: "growpart {{ item.disk_device }} {{ item.partition_to_stretch | replace(item.disk_device, '') }}"
-  changed_when: true
+  register: growpart_result
+  changed_when: "'NOCHANGE' not in growpart_result.stdout"
+  failed_when: >
+    growpart_result.rc != 0 and
+    'NOCHANGE' not in growpart_result.stdout
   notify: Перезагрузить сервер (если требуется)
 
 - name: "STRETCH | Заставить ядро перечитать таблицу разделов"

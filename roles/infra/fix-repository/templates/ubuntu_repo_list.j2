@@ -1,6 +1,0 @@
-{% for mirror in fix_repository_proxy_main_mirrors_ubuntu %}
-deb {{ mirror }} {{ ansible_distribution_release }} main restricted universe multiverse
-deb {{ mirror }} {{ ansible_distribution_release }}-updates main restricted universe multiverse
-deb {{ mirror }} {{ ansible_distribution_release }}-backports main restricted universe multiverse
-{% endfor %}
-deb http://security.ubuntu.com/ubuntu {{ ansible_distribution_release }}-security main restricted universe multiverse

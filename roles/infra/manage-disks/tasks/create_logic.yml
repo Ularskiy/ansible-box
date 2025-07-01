@@ -1,30 +1,117 @@
 - name: Подключение файла с проверками
   ansible.builtin.include_tasks: validate.yml
+  when: item.device is defined
 
 - name: Подключение файла сканирования "ДО"
   ansible.builtin.include_tasks: scan_disks.yml
+  when: item.device is defined
 
-- name: "CREATE | Создать раздел на весь диск"
+- name: "CREATE | Проверка метки диска {{ item.device }}"
   become: true
-  community.general.parted:
-    device: "{{ item.device }}"
-    number: 1
-    state: present
-    part_end: 100%
-    flags: [ lvm ]
-  notify: Перезагрузить сервер (если требуется)
+  ansible.builtin.command: "parted -m -s {{ item.device }} print"
+  register: parted_check_output
+  changed_when: false
+  ignore_errors: true
+  when: item.device is defined
+
+- name: "CREATE | Создать метку диска ({{ item.disklabel_type | default('gpt') }})"
+  become: true
+  ansible.builtin.command: "parted -s {{ item.device }} mklabel {{ item.disklabel_type | default('gpt') }}"
+  when:
+    - item.create_disklabel_if_missing | default(false)
+    - "'unrecognised disk label' in parted_check_output.stderr"
+  changed_when: true
+
+- name: "CREATE | Получить список свободных блоков на диске"
+  become: true
+  command: "parted -m -s {{ item.device }} unit MiB print free"
+  register: parted_output
+  when: item.device is defined
+
+- name: "CREATE | Парсинг свободных областей"
+  ansible.builtin.set_fact:
+    free_spaces_parsed: "{{ parted_output.stdout_lines | select('search', ':free;') | list }}"
+  when: item.device is defined and parted_output is defined
+
+- name: "DEBUG | Что вернул parted?"
+  ansible.builtin.debug:
+    var: parted_output.stdout_lines
+  when: parted_output is defined
+
+- name: "DEBUG | Что получилось после фильтра?"
+  ansible.builtin.debug:
+    var: free_spaces_parsed
+  when: free_spaces_parsed is defined
+
+- name: "CREATE | Найти корректный последний свободный блок (skip 0.00MiB)"
+  set_fact:
+    last_free_block: "{{ valid_blocks[-1] }}"
+  vars:
+    valid_blocks: >-
+      {{
+        free_spaces_parsed
+        | map('split', ':')
+        | selectattr('1', 'defined')
+        | selectattr('1', 'match', '^((?!0.00MiB).)*$')
+        | map('join', ':')
+        | list
+      }}
+  when: free_spaces_parsed | length > 0
+
+- name: "CREATE | Извлечь start и end"
+  set_fact:
+    part_start_mib: "{{ (last_free_block.split(':')[1] | regex_replace('MiB', '') | float) | round(2) }}"
+    part_end_mib: "{{ (last_free_block.split(':')[2] | regex_replace('MiB', '') | float) | round(2) }}"
+  when: last_free_block is defined
+
+- name: "CREATE | Защита от слишком маленького начала (минимум 1 MiB)"
+  ansible.builtin.set_fact:
+    part_start_mib: "1"
+  when: part_start_mib | float < 1
+
+- name: "CREATE | Подогнать end (минус 1 MiB)"
+  ansible.builtin.set_fact:
+    part_end_mib: "{{ (part_end_mib | float - 1) | round | string }}"
+  when: part_end_mib is defined
+
+- name: "FIX | Расширить GPT таблицу до конца диска (если не полная)"
+  become: true
+  ansible.builtin.command: "sgdisk -e {{ item.device }}"
+  changed_when: false
+  failed_when: false
+  when: item.device is defined
+
+- name: "CREATE | Создать раздел /dev/sdXn в свободной области"
+  become: true
+  command: >
+    parted -s {{ item.device }} mkpart {{ item.part_type | default('primary') }}
+    {{ part_start_mib }}MiB {{ part_end_mib }}MiB
+  when: item.device_partition_number is defined and item.device is defined and part_start_mib is defined and part_end_mib is defined
+
+- name: "CREATE | Установить имя нового раздела"
+  ansible.builtin.set_fact:
+    partition_device: "{{ item.device }}{{ item.device_partition_number | default('1') }}"
+  when: item.device is defined
 
 - name: "CREATE | Создать Physical Volume"
   become: true
-  ansible.builtin.shell: "yes | pvcreate -ff {{ item.device }}1"
+  ansible.builtin.shell: "yes | pvcreate -ff {{ partition_device }}"
+  changed_when: true
+  when: partition_device is defined
+
+- name: "CREATE | Расширить существующую VG (если указано)"
+  become: true
+  ansible.builtin.command: "vgextend {{ item.vg_name }} {{ partition_device }}"
+  when: item.add_to_existing_vg | default(false) and partition_device is defined
   changed_when: true
 
 - name: "CREATE | Создать новую Volume Group"
   become: true
   community.general.lvg:
     vg: "{{ item.vg_name }}"
-    pvs: "{{ item.device }}1"
+    pvs: "{{ partition_device }}"
     state: present
+  when: not item.add_to_existing_vg | default(false) and partition_device is defined
   notify: Перезагрузить сервер (если требуется)
 
 - name: "CREATE | Создание Logical Volume '{{ lv_item.name }}'"
@@ -35,9 +122,10 @@
     size: "{{ lv_item.size }}"
     state: present
   notify: "Перезагрузить сервер (если требуется)"
-  loop: "{{ item.lvs_to_create }}" 
+  loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
+  when: item.lvs_to_create is defined
 
 - name: "CREATE | Создание файловой системы '{{ lv_item.fs_type }}'"
   become: true
@@ -47,6 +135,7 @@
   loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
+  when: item.lvs_to_create is defined
 
 - name: "CREATE | Создание точки монтирования '{{ lv_item.mount_point }}'"
   become: true
@@ -57,6 +146,7 @@
   loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
+  when: item.lvs_to_create is defined
 
 - name: "CREATE | Монтирование и запись в fstab"
   become: true
@@ -72,13 +162,20 @@
   loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
+  when: item.lvs_to_create is defined
 
 - name: "CREATE | Настройка SELinux"
   ansible.builtin.include_tasks: handle_selinux.yml
-  when: lv_item.selinux_context is defined
+  vars:
+    mount_point: "{{ lv_item.mount_point }}"
+    selinux_context: "{{ lv_item.selinux_context }}"
+  when:
+    - item.lvs_to_create is defined
+    - lv_item.selinux_context is defined
   loop: "{{ item.lvs_to_create }}"
   loop_control:
     loop_var: lv_item
 
 - name: Подключение файла сканирования "ПОСЛЕ"
   ansible.builtin.include_tasks: scan_disks.yml
+  when: item.device is defined

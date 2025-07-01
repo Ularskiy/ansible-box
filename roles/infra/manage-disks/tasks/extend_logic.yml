@@ -5,47 +5,58 @@
   ansible.builtin.include_tasks: scan_disks.yml
 
 - name: "EXTEND | Запомнить разделы, которые уже есть на диске"
-  become: true
-  ansible.builtin.shell: "lsblk -lnpo NAME {{ item.disk_device }}"
-  register: partitions_before
-  changed_when: false
+  set_fact:
+    existing_partitions_on_disk: "{{ existing_partitions_on_disk | default({}) | combine({ item.disk_device: [] }) }}"
+  when: item.disk_device is defined
 
 - name: "EXTEND | Создать новый раздел в свободном пространстве"
   become: true
   ansible.builtin.shell: "parted -s -- {{ item.disk_device }} mkpart primary 17.2GB 100%"
   changed_when: true
+  when: item.disk_device is defined
 
 - name: "EXTEND | Заставить ядро перечитать таблицу разделов"
   become: true
   ansible.builtin.command: partprobe {{ item.disk_device }}
   changed_when: false
+  when: item.disk_device is defined
 
 - name: "EXTEND | Получить список разделов ПОСЛЕ создания"
   become: true
   ansible.builtin.shell: "lsblk -lnpo NAME {{ item.disk_device }}"
   register: partitions_after
   changed_when: false
+  when: item.disk_device is defined
 
 - name: "EXTEND | Вычислить и сохранить имя нового раздела в переменную"
   become: true
   ansible.builtin.set_fact:
     new_partition_device: "{{ (partitions_after.stdout_lines | difference(partitions_before.stdout_lines)) | first }}"
+  when: item.disk_device is defined
 
 - name: "EXTEND | Вывести имя найденного раздела (для отладки)"
   ansible.builtin.debug:
     msg: "Обнаружен новый раздел для работы: {{ new_partition_device }}"
-  when: new_partition_device is defined
+  when:
+    - item.disk_device is defined
+    - new_partition_device is defined
 
 - name: "EXTEND | Создать Physical Volume на НОВОМ разделе (pvcreate)"
   become: true
   ansible.builtin.shell: "yes | pvcreate -ff {{ new_partition_device }}"
   changed_when: true
+  when:
+    - item.disk_device is defined
+    - new_partition_device is defined
   notify: Перезагрузить сервер (если требуется)
 
 - name: "EXTEND | Расширить существующую Volume Group НОВЫМ разделом (vgextend)"
   become: true
   ansible.builtin.command: "vgextend {{ item.vg_to_extend }} {{ new_partition_device }}"
   changed_when: true
+  when:
+    - item.disk_device is defined
+    - new_partition_device is defined
   notify: Перезагрузить сервер (если требуется)
 
 - name: "EXTEND | Выполнить операции для каждого Logical Volume"

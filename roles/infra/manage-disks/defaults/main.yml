@@ -1,1 +1,19 @@
 disks: []
+
+safe_mount_prohibited_mounts:
+  - /
+  - /boot
+  - /boot/efi
+  - /dev
+  - /proc
+  - /sys
+  - /run
+  - /etc
+  - /var/lib
+
+selinux_protected_mount_points:
+  - /var/log
+  - /home
+  - /var/www
+  - /var/lib/mysql
+

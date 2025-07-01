@@ -1,46 +1,85 @@
-- name: "SAFE MOUNT | Остановить сервис логирования"
-  become: true
-  ansible.builtin.service:
-    name: rsyslog
-    state: stopped
+- name: "SAFE MOUNT | Пропустить, если путь '{{ mount_point }}' запрещён"
+  ansible.builtin.debug:
+    msg: "Пропущено: '{{ mount_point }}' находится в списке запрещённых для safe_mount"
+  when: mount_point in safe_mount_prohibited_mounts
 
-- name: "SAFE MOUNT | Переместить старое содержимое в *.old"
-  become: true
-  ansible.builtin.command: "mv {{ lv_item.mount_point }} {{ lv_item.mount_point }}.old"
-  changed_when: false
+- name: "SAFE MOUNT | Выполнить safe_mount, если путь разрешён"
+  when: mount_point not in safe_mount_prohibited_mounts
+  block:
 
-- name: "SAFE MOUNT | Создать новую пустую директорию"
-  become: true
-  ansible.builtin.file: { path: "{{ lv_item.mount_point }}", state: directory, mode: '0755' }
+    - name: "SAFE MOUNT | Остановить сервис логирования"
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: stopped
 
-- name: "SAFE MOUNT | Смонтировать новый том"
-  become: true
-  ansible.builtin.mount:
-    path: "{{ lv_item.mount_point }}"
-    src: "/dev/{{ item.vg_name | default(item.vg_to_extend) }}/{{ lv_item.name }}"
-    fstype: "{{ effective_fs_type }}"
-    state: mounted
-    opts: defaults
-    dump: 0
-    passno: 2
-  notify: Перезагрузить сервер (если требуется)
+    - name: "SAFE MOUNT | Сохранить SELinux-контексты старой директории"
+      become: true
+      ansible.builtin.shell: >
+        find {{ mount_point }} -exec stat -c '%C %n' {} \; > /tmp/selinux_ctx_backup_{{ mount_point | basename }}.txt
+      args:
+        executable: /bin/bash
+      when: ansible_selinux.status == 'enabled'
 
-- name: "SAFE MOUNT | Скопировать старую структуру и файлы обратно"
-  become: true
-  ansible.builtin.command: "cp -aT {{ lv_item.mount_point }}.old/ {{ lv_item.mount_point }}/"
-  changed_when: true
+    - name: "SAFE MOUNT | Переместить старое содержимое в *.old"
+      become: true
+      ansible.builtin.command: "mv {{ mount_point }} {{ mount_point }}.old"
+      changed_when: true
 
-- name: "SAFE MOUNT | Настройка SELinux"
-  ansible.builtin.include_tasks: handle_selinux.yml
+    - name: "SAFE MOUNT | Создать новую пустую директорию"
+      become: true
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: '0755'
 
-- name: "SAFE MOUNT | Удалить временную директорию *.old"
-  become: true
-  ansible.builtin.file:
-    path: "{{ lv_item.mount_point }}.old"
-    state: absent
+    - name: "SAFE MOUNT | Смонтировать новый том"
+      become: true
+      ansible.builtin.mount:
+        path: "{{ mount_point }}"
+        src: "/dev/{{ vg_name }}/{{ lv_name }}"
+        fstype: "{{ fs_type }}"
+        state: mounted
+        opts: defaults
+        dump: 0
+        passno: 2
+      notify: Перезагрузить сервер (если требуется)
 
-- name: "SAFE MOUNT | Запустить сервис логирования обратно"
-  become: true
-  ansible.builtin.service:
-    name: rsyslog
-    state: started
+    - name: "SAFE MOUNT | Скопировать старую структуру и файлы обратно"
+      become: true
+      ansible.builtin.command: "cp -aT {{ mount_point }}.old/ {{ mount_point }}/"
+      changed_when: true
+
+    - name: "SAFE MOUNT | Восстановить SELinux-контексты вручную"
+      become: true
+      ansible.builtin.shell: |
+        while read ctx path; do
+          chcon "$ctx" "$path" || true
+        done < /tmp/selinux_ctx_backup_{{ mount_point | basename }}.txt
+      args:
+        executable: /bin/bash
+      when:
+        - ansible_selinux.status == 'enabled'
+        - mount_point is defined
+
+    - name: "SAFE MOUNT | Удалить временный дамп контекстов"
+      become: true
+      ansible.builtin.file:
+        path: "/tmp/selinux_ctx_backup_{{ mount_point | basename }}.txt"
+        state: absent
+
+    - name: "SAFE MOUNT | Настройка SELinux"
+      ansible.builtin.include_tasks: handle_selinux.yml
+      when: selinux_context is defined
+
+    - name: "SAFE MOUNT | Удалить временную директорию *.old"
+      become: true
+      ansible.builtin.file:
+        path: "{{ mount_point }}.old"
+        state: absent
+
+    - name: "SAFE MOUNT | Запустить сервис логирования обратно"
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: started

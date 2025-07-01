@@ -1,15 +1,21 @@
 - name: "Управление LVM и ФС для тома '{{ lv_item.name }}'"
   ansible.builtin.include_tasks: handle_lv_and_fs.yml
+  vars:
+    vg_name: "{{ item.vg_name | default(item.vg_to_extend) }}"
+    lv_name: "{{ lv_item.name }}"
+    new_size: "{{ lv_item.new_size }}"
+    fs_type: "{{ lv_item.fs_type | default(omit) }}"
+    selinux_context: "{{ lv_item.selinux_context | default(omit) }}"
 
-- name: "Проверить состояние точки монтирования '{{ lv_item.mount_point }}'" 
+- name: "Проверить состояние точки монтирования '{{ lv_item.mount_point }}'"
   become: true
   ansible.builtin.stat:
-    path: "{{ lv_item.mount_point }}" 
+    path: "{{ lv_item.mount_point }}"
   register: mount_point_stat
 
 - name: "Подсчитать количество файлов в точке монтирования"
   become: true
-  ansible.builtin.shell: "ls -A {{ lv_item.mount_point }} | wc -l" 
+  ansible.builtin.shell: "ls -A {{ lv_item.mount_point }} | wc -l"
   register: mount_point_content_count
   when: mount_point_stat.stat.exists and mount_point_stat.stat.isdir
   changed_when: false
@@ -17,8 +23,20 @@
 
 - name: "Сценарий дефолтного монтирования (папка пуста или не существует)"
   ansible.builtin.include_tasks: handle_mount_simple.yml
+  vars:
+    lv_name: "{{ lv_item.name }}"
+    vg_name: "{{ item.vg_name | default(item.vg_to_extend) }}"
+    fs_type: "{{ lv_item.fs_type | default('ext4') }}"
+    mount_point: "{{ lv_item.mount_point }}"
+    selinux_context: "{{ lv_item.selinux_context | default(omit) }}"
   when: lv_item.fs_type is defined and (not mount_point_stat.stat.exists or mount_point_content_count.stdout == "0")
 
 - name: "Сценарий 'SAFE MOUNT' (папка существует и в ней есть файлы)"
   ansible.builtin.include_tasks: handle_mount_preserve.yml
+  vars:
+    lv_name: "{{ lv_item.name }}"
+    vg_name: "{{ item.vg_name | default(item.vg_to_extend) }}"
+    fs_type: "{{ lv_item.fs_type | default('ext4') }}"
+    mount_point: "{{ lv_item.mount_point }}"
+    selinux_context: "{{ lv_item.selinux_context | default(omit) }}"
   when: lv_item.fs_type is defined and (mount_point_stat.stat.exists and mount_point_content_count.stdout | int > 0)

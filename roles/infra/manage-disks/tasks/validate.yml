@@ -4,23 +4,40 @@
       - lv_item.mount_point not in ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
     fail_msg: "Операция 'create': Точка монтирования {{ lv_item.mount_point }} запрещена."
   loop: "{{ item.lvs_to_create }}"
-  loop_control: { loop_var: lv_item }
-  when: "item.operation_type | default('create') == 'create'"
+  loop_control:
+    loop_var: lv_item
+  when:
+    - item.operation_type == 'create'
+    - item.lvs_to_create is defined
 
-- name: "CREATE | Проверка, не используется ли уже устройство"
-  ansible.builtin.shell: "mount | grep -q {{ item.device }}"
+- name: "CREATE | Проверка, не используется ли уже создаваемый раздел"
+  shell: "mount | grep -q {{ item.device }}{{ item.device_partition_number | default('1') }}"
   register: device_check_create
   failed_when: device_check_create.rc == 0
   changed_when: false
-  when: "item.operation_type | default('create') == 'create'"
+  when:
+    - item.operation_type == 'create'
+    - item.device is defined
 
 - name: "EXTEND/STRETCH | Проверка критических точек монтирования"
   vars:
     forbidden_paths: ["/", "/boot", "/boot/efi", "/usr", "/etc", "/var", "/home", "/opt"]
   ansible.builtin.assert:
     that:
-      - lv_item.mount_point not in forbidden_paths or (lv_item.allow_dangerous_resize | default(false)) 
-    fail_msg: "Попытка изменить критическую точку монтирования '{{ lv_item.mount_point }}' без флага подтверждения 'allow_dangerous_resize: true'." 
+      - lv_item.mount_point not in forbidden_paths or (lv_item.allow_dangerous_resize | default(false))
+    fail_msg: "Попытка изменить критическую точку монтирования '{{ lv_item.mount_point }}' без флага подтверждения 'allow_dangerous_resize: true'."
   loop: "{{ item.lvs_to_modify }}"
-  loop_control: { loop_var: lv_item }
-  when: "item.operation_type == 'extend' or item.operation_type == 'stretch'"
+  loop_control:
+    loop_var: lv_item
+  when: item.operation_type in ['extend', 'stretch']
+
+- name: "VALIDATE | Пропустить диск, если он содержит /"
+  ansible.builtin.command: findmnt -n -o SOURCE /
+  register: root_dev
+  changed_when: false
+
+- name: "VALIDATE | Пропустить работу с системным диском"
+  ansible.builtin.meta: end_host
+  when:
+    - item.device is defined
+    - item.device in root_dev.stdout

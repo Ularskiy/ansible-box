@@ -3,7 +3,7 @@
   become: true
 
   vars_files:
-    - ../inventory/testing/fix-repository/fix_playbook.yml
+    - ../inventory/testing/fix-repository/fix_playbook_nexus.yml
 
   roles:
     - infra/fix-repository

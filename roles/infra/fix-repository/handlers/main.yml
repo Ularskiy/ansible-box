@@ -3,3 +3,8 @@
     name: "{{ fix_repository_squid_service_name }}"
     state: restarted
   become: true
+
+- name: update package cache
+  ansible.builtin.package:
+    update_cache: yes
+  become: true

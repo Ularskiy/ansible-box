@@ -1,20 +1,11 @@
 vm_list:
-  - name: test-ssh-1 
-    id: 1000
-    state: started
+  - name: puppet-vm
+    id: 111
+    state: present
     ci_user: ansible
-    ip: 10.96.34.145
-    cidr: 25
-    gw: 10.96.34.129
-    source_vmid: 110
-    target_node: alm2a-itpsector-pve
-    bridge: br-vlan2875
-
-  - name: test-ssh-2
-    id: 1001
-    state: started
-    ci_user: ansible
-    ip: 10.96.34.146
+    memory: 4096
+    cores: 2
+    ip: 10.96.34.136
     cidr: 25
     gw: 10.96.34.129
     source_vmid: 110
